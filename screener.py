@@ -336,15 +336,39 @@ def run_horizon(horizon, tickers, output_path):
     return output
 
 
+def load_quality_filter(quality_file, min_score):
+    """Charge les tickers passant le seuil de qualité depuis results_quality.json."""
+    try:
+        data = json.loads(Path(quality_file).read_text())
+        qualified = [r["ticker"] for r in data["results"] if r["total_score"] >= min_score]
+        print(f"  ✓ Filtre qualité chargé : {len(qualified)} tickers (score ≥ {min_score})")
+        return qualified
+    except Exception as e:
+        print(f"  [!] Impossible de charger le filtre qualité : {e}")
+        return None
+
+
 def main():
     parser = argparse.ArgumentParser(description="Screener Nasdaq 100")
     parser.add_argument("--horizon", choices=["day", "swing", "position", "all"],
                         default="swing", help="Horizon (ou 'all' pour tous)")
     parser.add_argument("--limit", type=int, default=None, help="Limiter tickers (debug)")
     parser.add_argument("--output-dir", default=".", help="Dossier de sortie")
+    parser.add_argument("--quality-file", default=None,
+                        help="Fichier JSON qualité pour filtrer (ex: public/results_quality.json)")
+    parser.add_argument("--quality-min", type=float, default=0,
+                        help="Score qualité minimum pour inclure un ticker (0-100)")
     args = parser.parse_args()
 
     tickers = NASDAQ100[: args.limit] if args.limit else NASDAQ100
+
+    # Filtre qualité optionnel
+    if args.quality_file and args.quality_min > 0:
+        qualified = load_quality_filter(args.quality_file, args.quality_min)
+        if qualified:
+            tickers = [t for t in tickers if t in qualified]
+            print(f"  → {len(tickers)} tickers retenus après filtre qualité\n")
+
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 

@@ -16,17 +16,16 @@
     --border: #26334a; --text: #e4e9f2; --muted: #8b97ad;
     --green: #22c55e; --green-strong: #16a34a;
     --red: #ef4444; --red-strong: #dc2626;
-    --yellow: #eab308; --blue: #3b82f6;
+    --yellow: #eab308; --blue: #3b82f6; --purple: #a855f7;
+    --gold: #f59e0b;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  html { font-size: 16px; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     background: var(--bg); color: var(--text); line-height: 1.5;
     padding-bottom: env(safe-area-inset-bottom);
   }
 
-  /* ===== HEADER ===== */
   header {
     background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
     border-bottom: 1px solid var(--border);
@@ -34,55 +33,74 @@
     padding-top: calc(14px + env(safe-area-inset-top));
     position: sticky; top: 0; z-index: 10;
   }
-  .header-top {
-    display: flex; justify-content: space-between; align-items: center;
-    gap: 12px; flex-wrap: wrap;
-  }
+  .header-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
   header h1 { font-size: 18px; font-weight: 600; }
   .meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
-  .controls { display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
-  .controls select {
-    background: var(--panel); border: 1px solid var(--border);
-    color: var(--text); padding: 8px 12px; border-radius: 8px;
-    font-size: 13px; flex: 1; min-width: 120px;
-  }
-  .controls label {
-    background: var(--panel); border: 1px solid var(--border);
-    padding: 8px 12px; border-radius: 8px; font-size: 13px; cursor: pointer;
-  }
-  .controls input[type="file"] { display: none; }
 
-  /* ===== SUMMARY CARDS ===== */
+  /* ONGLETS */
+  .tabs {
+    display: flex; gap: 6px; margin-top: 12px;
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    background: var(--panel); border: 1px solid var(--border); color: var(--text);
+    padding: 9px 16px; border-radius: 20px; font-size: 13px; font-weight: 500;
+    white-space: nowrap; cursor: pointer; flex-shrink: 0;
+  }
+  .tab.active { background: var(--blue); border-color: var(--blue); }
+  .tab.quality.active { background: var(--gold); border-color: var(--gold); color: #000; }
+  .tab.watchlist.active { background: var(--purple); border-color: var(--purple); }
+
+  /* CONTROLES */
+  .controls { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+  .controls select, .controls input[type="number"] {
+    background: var(--panel); border: 1px solid var(--border); color: var(--text);
+    padding: 8px 12px; border-radius: 8px; font-size: 13px;
+  }
+  .controls select { flex: 1; min-width: 120px; }
+  .controls input[type="number"] { width: 80px; }
+  .controls label.range-label {
+    color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: 6px;
+  }
+
+  /* SUMMARY */
   .summary {
     display: grid; grid-template-columns: repeat(5, 1fr);
     gap: 8px; padding: 12px 18px;
   }
   .card {
     background: var(--panel); border: 1px solid var(--border);
-    border-radius: 10px; padding: 10px 8px; text-align: center;
-    cursor: pointer; transition: transform 0.15s;
+    border-radius: 10px; padding: 10px 8px; text-align: center; cursor: pointer;
   }
   .card:active { transform: scale(0.96); }
-  .card .label { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; }
+  .card .label { color: var(--muted); font-size: 10px; text-transform: uppercase; }
   .card .value { font-size: 22px; font-weight: 700; margin-top: 2px; }
+
+  /* Couleurs techniques */
   .card.buy-strong { border-top: 3px solid var(--green-strong); }
   .card.buy { border-top: 3px solid var(--green); }
   .card.neutral { border-top: 3px solid var(--muted); }
   .card.sell { border-top: 3px solid var(--red); }
   .card.sell-strong { border-top: 3px solid var(--red-strong); }
 
-  /* ===== MAIN ===== */
+  /* Couleurs qualité */
+  .card.excellent { border-top: 3px solid var(--gold); }
+  .card.good { border-top: 3px solid #eab308; }
+  .card.average { border-top: 3px solid var(--muted); }
+  .card.weak { border-top: 3px solid #f97316; }
+  .card.avoid { border-top: 3px solid var(--red); }
+
   main { padding: 0 14px 40px; }
   .filters {
-    display: flex; gap: 6px; margin-bottom: 12px;
-    overflow-x: auto; -webkit-overflow-scrolling: touch;
-    padding-bottom: 4px; scrollbar-width: none;
+    display: flex; gap: 6px; margin-bottom: 10px;
+    overflow-x: auto; scrollbar-width: none;
   }
   .filters::-webkit-scrollbar { display: none; }
   .filters button {
     background: var(--panel); border: 1px solid var(--border); color: var(--text);
-    padding: 7px 12px; border-radius: 20px; font-size: 12px;
-    font-weight: 500; white-space: nowrap; flex-shrink: 0;
+    padding: 7px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;
+    white-space: nowrap; flex-shrink: 0;
   }
   .filters button.active { background: var(--blue); border-color: var(--blue); }
   .search-input {
@@ -91,31 +109,21 @@
     font-size: 14px; margin-bottom: 12px;
   }
 
-  /* ===== LAYOUT ===== */
-  .grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
-  }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   @media (max-width: 900px) {
     .grid { grid-template-columns: 1fr; }
     .summary { padding: 10px 14px; }
     .card .value { font-size: 20px; }
   }
 
-  .panel {
-    background: var(--panel); border: 1px solid var(--border);
-    border-radius: 12px; overflow: hidden;
-  }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
   .panel-header {
     padding: 12px 16px; border-bottom: 1px solid var(--border);
     font-size: 12px; font-weight: 600; color: var(--muted);
     text-transform: uppercase; letter-spacing: 0.5px;
   }
 
-  /* ===== TABLE ===== */
-  .table-wrap {
-    max-height: calc(100vh - 320px); overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
+  .table-wrap { max-height: calc(100vh - 340px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   thead th {
     text-align: left; padding: 10px 8px;
@@ -129,6 +137,7 @@
   tbody tr.selected { background: rgba(59, 130, 246, 0.15); }
   tbody td { padding: 10px 8px; }
   .ticker { font-weight: 700; font-size: 13px; }
+
   .score {
     display: inline-block; padding: 3px 8px; border-radius: 6px;
     font-weight: 700; font-size: 12px; min-width: 45px; text-align: center;
@@ -138,24 +147,42 @@
   .score.neg { background: rgba(239, 68, 68, 0.2); color: var(--red); }
   .score.strong-neg { background: var(--red); color: white; }
   .score.neutral { background: var(--panel-light); color: var(--muted); }
+
+  .qscore {
+    display: inline-block; padding: 3px 8px; border-radius: 6px;
+    font-weight: 700; font-size: 12px; min-width: 45px; text-align: center;
+  }
+  .qscore.excellent { background: var(--gold); color: #000; }
+  .qscore.good { background: rgba(245, 158, 11, 0.3); color: var(--gold); }
+  .qscore.average { background: var(--panel-light); color: var(--text); }
+  .qscore.weak { background: rgba(249, 115, 22, 0.2); color: #f97316; }
+  .qscore.avoid { background: rgba(239, 68, 68, 0.2); color: var(--red); }
+
   .change-pos { color: var(--green); }
   .change-neg { color: var(--red); }
-  .vol-high { color: var(--yellow); font-weight: 600; }
 
-  /* Hide less critical columns on mobile */
+  .mos-pos { color: var(--green); font-weight: 600; }
+  .mos-neg { color: var(--red); font-weight: 600; }
+  .mos-neutral { color: var(--muted); }
+
   @media (max-width: 500px) {
-    .col-macd, .col-vol { display: none; }
+    .col-hide-mobile { display: none; }
     thead th, tbody td { padding: 9px 6px; }
   }
 
-  /* ===== DETAIL ===== */
   .detail { padding: 16px; }
   .detail-header {
     display: flex; justify-content: space-between;
     align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 14px;
   }
   .ticker-big { font-size: 22px; font-weight: 700; }
+  .sector-tag {
+    display: inline-block; background: var(--panel-light);
+    padding: 2px 8px; border-radius: 4px; font-size: 11px;
+    color: var(--muted); margin-top: 4px;
+  }
   .price-big { font-size: 18px; font-weight: 600; }
+
   .metrics-grid {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
     gap: 8px; margin: 12px 0;
@@ -163,6 +190,63 @@
   .metric { background: var(--panel-light); padding: 8px 10px; border-radius: 8px; }
   .metric .k { color: var(--muted); font-size: 10px; text-transform: uppercase; }
   .metric .v { font-size: 14px; font-weight: 600; margin-top: 2px; }
+  .metric.bad .v { color: var(--red); }
+  .metric.ok .v { color: var(--green); }
+  .metric.warn .v { color: var(--yellow); }
+
+  .section-label {
+    font-size: 11px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.5px; margin-top: 16px; margin-bottom: 6px;
+  }
+
+  /* BARRES DE SCORES */
+  .score-bar {
+    display: flex; align-items: center; gap: 10px;
+    margin: 6px 0; font-size: 12px;
+  }
+  .score-bar .label { min-width: 95px; color: var(--muted); font-size: 11px; }
+  .score-bar .bar {
+    flex: 1; height: 14px; background: var(--panel-light);
+    border-radius: 7px; overflow: hidden; position: relative;
+  }
+  .score-bar .fill {
+    height: 100%; background: linear-gradient(90deg, var(--yellow), var(--green));
+    border-radius: 7px;
+  }
+  .score-bar .fill.low { background: var(--red); }
+  .score-bar .fill.mid { background: var(--yellow); }
+  .score-bar .fill.high { background: var(--green); }
+  .score-bar .val { min-width: 45px; text-align: right; font-weight: 600; }
+
+  /* VALUATION */
+  .valuation-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    margin-top: 10px;
+  }
+  .valuation-box {
+    background: var(--panel-light); padding: 10px; border-radius: 8px;
+  }
+  .valuation-box .k { font-size: 10px; color: var(--muted); text-transform: uppercase; }
+  .valuation-box .v { font-size: 16px; font-weight: 700; margin-top: 4px; }
+  .valuation-box.highlight { border: 1px solid var(--gold); }
+
+  .verdict-banner {
+    padding: 10px 14px; border-radius: 8px; margin-top: 10px;
+    text-align: center; font-weight: 600; font-size: 14px;
+  }
+  .verdict-banner.tres-sous-valorise { background: var(--green); color: white; }
+  .verdict-banner.sous-valorise { background: rgba(34, 197, 94, 0.25); color: var(--green); }
+  .verdict-banner.juste-prix { background: var(--panel-light); color: var(--text); }
+  .verdict-banner.survalorise { background: rgba(239, 68, 68, 0.25); color: var(--red); }
+  .verdict-banner.tres-survalorise { background: var(--red); color: white; }
+
+  #chart-container { height: 280px; margin-top: 14px; }
+  .placeholder { color: var(--muted); text-align: center; padding: 40px 20px; font-size: 14px; }
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty-state h2 { font-size: 18px; margin-bottom: 10px; color: var(--text); }
+  .empty-state code { background: var(--panel); padding: 2px 8px; border-radius: 4px; color: var(--yellow); }
+  .loading { text-align: center; padding: 40px; color: var(--muted); }
+
   .signals-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .chip {
     padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 500;
@@ -170,55 +254,36 @@
   }
   .chip.bull { background: rgba(34, 197, 94, 0.15); border-color: var(--green); color: var(--green); }
   .chip.bear { background: rgba(239, 68, 68, 0.15); border-color: var(--red); color: var(--red); }
-  #chart-container { height: 280px; margin-top: 14px; }
-  .placeholder { color: var(--muted); text-align: center; padding: 40px 20px; font-size: 14px; }
-  .section-label {
-    font-size: 11px; color: var(--muted); text-transform: uppercase;
-    letter-spacing: 0.5px; margin-top: 16px; margin-bottom: 6px;
-  }
-
-  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
-  .empty-state h2 { font-size: 18px; margin-bottom: 10px; color: var(--text); }
-  .empty-state code {
-    background: var(--panel); padding: 2px 8px; border-radius: 4px;
-    font-size: 13px; color: var(--yellow);
-  }
-  .loading { text-align: center; padding: 40px; color: var(--muted); }
 </style>
 </head>
 <body>
 <header>
   <div class="header-top">
     <div>
-      <h1>📊 Screener Nasdaq 100</h1>
+      <h1 id="title">📊 Screener Nasdaq 100</h1>
       <div class="meta" id="meta">Chargement…</div>
     </div>
   </div>
-  <div class="controls">
-    <select id="horizon-select">
-      <option value="swing">Swing Trading (journalier)</option>
-      <option value="position">Position Trading (LT)</option>
-    </select>
-    <select id="sort-select">
-      <option value="score-abs">Tri : Signal fort</option>
-      <option value="score-desc">Tri : Score ↓</option>
-      <option value="score-asc">Tri : Score ↑</option>
-      <option value="change-desc">Tri : Variation</option>
-      <option value="volume-desc">Tri : Volume</option>
-      <option value="ticker">Tri : A-Z</option>
-    </select>
-    <label>📁<input type="file" id="file-input" accept=".json"></label>
+  <div class="tabs">
+    <button class="tab quality active" data-view="quality">⭐ Qualité</button>
+    <button class="tab" data-view="technical">📈 Technique</button>
+    <button class="tab watchlist" data-view="watchlist">🎯 Watchlist</button>
   </div>
+  <div class="controls" id="controls"></div>
 </header>
 
 <div id="app"><div class="loading">Chargement des données…</div></div>
 
 <script>
-let DATA = null;
-let SELECTED_TICKER = null;
+let DATA_QUALITY = null;
+let DATA_SWING = null;
+let DATA_POSITION = null;
+let CURRENT_VIEW = "quality";          // quality | technical | watchlist
+let CURRENT_HORIZON = "swing";          // swing | position
 let CURRENT_FILTER = "all";
-let CURRENT_SORT = "score-abs";
-let CURRENT_HORIZON = "swing";
+let CURRENT_SORT = "default";
+let MIN_QUALITY_SCORE = 60;             // Seuil watchlist
+let SELECTED_TICKER = null;
 let chartInstance = null;
 
 const zoneLabel = {
@@ -228,115 +293,494 @@ const zoneLabel = {
   VENTE:      { text: "Vente",      cls: "neg",        emoji: "🔴"   },
   VENTE_FORT: { text: "Vente fort", cls: "strong-neg", emoji: "🔴🔴" },
 };
+const tierLabel = {
+  EXCELLENTE: { text: "Excellente", cls: "excellent", emoji: "⭐⭐⭐" },
+  BONNE:      { text: "Bonne",      cls: "good",      emoji: "⭐⭐"  },
+  MOYENNE:    { text: "Moyenne",    cls: "average",   emoji: "⭐"   },
+  FAIBLE:     { text: "Faible",     cls: "weak",      emoji: "⚠️"   },
+  A_EVITER:   { text: "À éviter",   cls: "avoid",     emoji: "❌"   },
+};
+const verdictLabel = {
+  TRES_SOUS_VALORISE:  { text: "Très sous-valorisé", cls: "tres-sous-valorise" },
+  SOUS_VALORISE:       { text: "Sous-valorisé",      cls: "sous-valorise"      },
+  JUSTE_PRIX:          { text: "Juste prix",         cls: "juste-prix"         },
+  SURVALORISE:         { text: "Survalorisé",        cls: "survalorise"        },
+  TRES_SURVALORISE:    { text: "Très survalorisé",   cls: "tres-survalorise"   },
+  INCONNU:             { text: "Valorisation inconnue", cls: "juste-prix"      },
+};
 
-// --- Chargement automatique au démarrage ---
-async function loadHorizon(horizon) {
-  CURRENT_HORIZON = horizon;
-  document.getElementById("app").innerHTML = `<div class="loading">Chargement ${horizon}...</div>`;
+async function fetchJson(path) {
   try {
-    // Cache-buster pour éviter les données obsolètes
-    const r = await fetch(`results_${horizon}.json?t=${Date.now()}`);
-    if (!r.ok) throw new Error("Fichier non trouvé");
-    DATA = await r.json();
-    render();
-  } catch (e) {
-    // Fallback sur results.json
-    try {
-      const r = await fetch(`results.json?t=${Date.now()}`);
-      if (!r.ok) throw new Error();
-      DATA = await r.json();
-      render();
-    } catch {
-      showEmpty();
-    }
+    const r = await fetch(`${path}?t=${Date.now()}`);
+    if (!r.ok) return null;
+    return await r.json();
+  } catch { return null; }
+}
+
+async function loadAll() {
+  [DATA_QUALITY, DATA_SWING, DATA_POSITION] = await Promise.all([
+    fetchJson("results_quality.json"),
+    fetchJson("results_swing.json"),
+    fetchJson("results_position.json"),
+  ]);
+  if (!DATA_QUALITY && !DATA_SWING && !DATA_POSITION) {
+    showEmpty();
+    return;
   }
+  render();
 }
 
 function showEmpty() {
   document.getElementById("app").innerHTML = `
     <div class="empty-state">
       <h2>Aucune donnée disponible</h2>
-      <p>Les fichiers <code>results_swing.json</code> et <code>results_position.json</code> sont introuvables.</p>
-      <p style="margin-top: 12px;">Utilisez le bouton 📁 pour charger un fichier manuellement.</p>
+      <p>Lancez d'abord les screeners :</p>
+      <p style="margin-top:8px"><code>python quality_screener.py</code></p>
+      <p><code>python screener.py --horizon all</code></p>
     </div>`;
 }
 
-document.getElementById("horizon-select").addEventListener("change", (e) => loadHorizon(e.target.value));
-document.getElementById("sort-select").addEventListener("change", (e) => { CURRENT_SORT = e.target.value; renderTable(); });
-document.getElementById("file-input").addEventListener("change", async (e) => {
-  const f = e.target.files[0];
-  if (!f) return;
-  DATA = JSON.parse(await f.text());
-  render();
+// --- Tabs ---
+document.querySelectorAll(".tab").forEach(t => {
+  t.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+    t.classList.add("active");
+    CURRENT_VIEW = t.dataset.view;
+    SELECTED_TICKER = null;
+    CURRENT_FILTER = "all";
+    render();
+  });
 });
 
-function render() {
-  if (!DATA) return;
-  document.getElementById("meta").textContent =
-    `${DATA.count} actions · ${new Date(DATA.generated_at).toLocaleString('fr-FR')}`;
+function renderControls() {
+  const c = document.getElementById("controls");
+  if (CURRENT_VIEW === "quality") {
+    c.innerHTML = `
+      <select id="sort-select">
+        <option value="default">Tri : Score global ↓</option>
+        <option value="quality">Tri : Score qualité ↓</option>
+        <option value="mos">Tri : Marge de sécurité ↓</option>
+        <option value="ticker">Tri : A-Z</option>
+      </select>`;
+  } else if (CURRENT_VIEW === "technical") {
+    c.innerHTML = `
+      <select id="horizon-select">
+        <option value="swing" ${CURRENT_HORIZON==="swing"?"selected":""}>Swing Trading</option>
+        <option value="position" ${CURRENT_HORIZON==="position"?"selected":""}>Position Trading</option>
+      </select>
+      <select id="sort-select">
+        <option value="default">Tri : Signal fort</option>
+        <option value="score-desc">Tri : Score ↓</option>
+        <option value="score-asc">Tri : Score ↑</option>
+        <option value="change-desc">Tri : Variation</option>
+      </select>`;
+    document.getElementById("horizon-select").addEventListener("change", e => {
+      CURRENT_HORIZON = e.target.value; render();
+    });
+  } else {
+    // watchlist
+    c.innerHTML = `
+      <label class="range-label">
+        Qualité min :
+        <input type="number" id="min-quality" value="${MIN_QUALITY_SCORE}" min="0" max="100" step="5">
+      </label>
+      <select id="horizon-select">
+        <option value="swing" ${CURRENT_HORIZON==="swing"?"selected":""}>Swing</option>
+        <option value="position" ${CURRENT_HORIZON==="position"?"selected":""}>Position</option>
+      </select>
+      <select id="sort-select">
+        <option value="combined">Tri : Combiné (qualité+tech)</option>
+        <option value="quality">Tri : Qualité</option>
+        <option value="technical">Tri : Technique</option>
+        <option value="mos">Tri : Marge sécurité</option>
+      </select>`;
+    document.getElementById("min-quality").addEventListener("change", e => {
+      MIN_QUALITY_SCORE = parseInt(e.target.value) || 0; render();
+    });
+    document.getElementById("horizon-select").addEventListener("change", e => {
+      CURRENT_HORIZON = e.target.value; render();
+    });
+  }
+  if (document.getElementById("sort-select")) {
+    document.getElementById("sort-select").addEventListener("change", e => {
+      CURRENT_SORT = e.target.value; renderTable();
+    });
+  }
+}
 
-  const counts = { ACHAT_FORT: 0, ACHAT: 0, NEUTRE: 0, VENTE: 0, VENTE_FORT: 0 };
-  DATA.results.forEach(r => counts[r.zone]++);
+function render() {
+  CURRENT_SORT = "default";
+  renderControls();
+  if (CURRENT_VIEW === "quality") renderQualityView();
+  else if (CURRENT_VIEW === "technical") renderTechnicalView();
+  else renderWatchlistView();
+}
+
+// =========================================================================
+// VUE QUALITÉ
+// =========================================================================
+function renderQualityView() {
+  if (!DATA_QUALITY) {
+    document.getElementById("app").innerHTML = `<div class="empty-state"><p>Fichier <code>results_quality.json</code> introuvable</p></div>`;
+    return;
+  }
+  document.getElementById("meta").textContent =
+    `${DATA_QUALITY.count} actions · ${new Date(DATA_QUALITY.generated_at).toLocaleString('fr-FR')}`;
+
+  const counts = { EXCELLENTE: 0, BONNE: 0, MOYENNE: 0, FAIBLE: 0, A_EVITER: 0 };
+  DATA_QUALITY.results.forEach(r => counts[r.tier]++);
 
   document.getElementById("app").innerHTML = `
     <section class="summary">
-      <div class="card buy-strong" data-filter="ACHAT_FORT">
-        <div class="label">🟢🟢 Achat+</div><div class="value">${counts.ACHAT_FORT}</div>
+      <div class="card excellent" data-filter="EXCELLENTE">
+        <div class="label">⭐⭐⭐ Excel.</div><div class="value">${counts.EXCELLENTE}</div>
       </div>
-      <div class="card buy" data-filter="ACHAT">
-        <div class="label">🟢 Achat</div><div class="value">${counts.ACHAT}</div>
+      <div class="card good" data-filter="BONNE">
+        <div class="label">⭐⭐ Bonne</div><div class="value">${counts.BONNE}</div>
       </div>
-      <div class="card neutral" data-filter="NEUTRE">
-        <div class="label">⚪ Neutre</div><div class="value">${counts.NEUTRE}</div>
+      <div class="card average" data-filter="MOYENNE">
+        <div class="label">⭐ Moy.</div><div class="value">${counts.MOYENNE}</div>
       </div>
-      <div class="card sell" data-filter="VENTE">
-        <div class="label">🔴 Vente</div><div class="value">${counts.VENTE}</div>
+      <div class="card weak" data-filter="FAIBLE">
+        <div class="label">⚠️ Faible</div><div class="value">${counts.FAIBLE}</div>
       </div>
-      <div class="card sell-strong" data-filter="VENTE_FORT">
-        <div class="label">🔴🔴 Vente+</div><div class="value">${counts.VENTE_FORT}</div>
+      <div class="card avoid" data-filter="A_EVITER">
+        <div class="label">❌ Éviter</div><div class="value">${counts.A_EVITER}</div>
       </div>
+    </section>
+    <main>
+      <div class="filters">
+        <button data-f="all" class="active">Tous</button>
+        <button data-f="top">🏆 Top 20</button>
+        <button data-f="EXCELLENTE">⭐⭐⭐ Excellentes</button>
+        <button data-f="BONNE">⭐⭐ Bonnes</button>
+        <button data-f="undervalued">💰 Sous-valorisées</button>
+      </div>
+      <input type="search" id="search" class="search-input" placeholder="🔍 Rechercher...">
+      <div class="grid">
+        <div class="panel">
+          <div class="panel-header">Actions classées par qualité</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ticker</th>
+                  <th>Score</th>
+                  <th class="col-hide-mobile">Tier</th>
+                  <th>Prix</th>
+                  <th>Juste val.</th>
+                  <th>MoS</th>
+                </tr>
+              </thead>
+              <tbody id="quality-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">Analyse détaillée</div>
+          <div id="detail" class="detail">
+            <div class="placeholder">Touchez une ligne pour voir l'analyse complète</div>
+          </div>
+        </div>
+      </div>
+    </main>`;
+
+  attachCommonListeners();
+  renderTable();
+}
+
+function renderQualityTable() {
+  const search = (document.getElementById("search")?.value || "").toUpperCase();
+  let rows = [...DATA_QUALITY.results];
+
+  if (CURRENT_FILTER === "top") rows = rows.slice(0, 20);
+  else if (CURRENT_FILTER === "undervalued")
+    rows = rows.filter(r => r.verdict === "SOUS_VALORISE" || r.verdict === "TRES_SOUS_VALORISE");
+  else if (CURRENT_FILTER !== "all") rows = rows.filter(r => r.tier === CURRENT_FILTER);
+  if (search) rows = rows.filter(r => r.ticker.includes(search));
+
+  const sorters = {
+    "default": (a, b) => b.total_score - a.total_score,
+    "quality": (a, b) => b.quality_score - a.quality_score,
+    "mos": (a, b) => (b.valuation.margin_of_safety ?? -99) - (a.valuation.margin_of_safety ?? -99),
+    "ticker": (a, b) => a.ticker.localeCompare(b.ticker),
+  };
+  rows.sort(sorters[CURRENT_SORT] || sorters.default);
+
+  const tbody = document.getElementById("quality-tbody");
+  tbody.innerHTML = rows.map(r => {
+    const tl = tierLabel[r.tier];
+    const mos = r.valuation.margin_of_safety;
+    const mosStr = mos === null || mos === undefined ? "—" : `${(mos * 100).toFixed(0)}%`;
+    const mosCls = mos === null ? "mos-neutral" : mos > 0.1 ? "mos-pos" : mos < -0.1 ? "mos-neg" : "mos-neutral";
+    const avg = r.valuation.average;
+    return `
+      <tr data-ticker="${r.ticker}" class="${r.ticker === SELECTED_TICKER ? 'selected' : ''}">
+        <td class="ticker">${r.ticker}</td>
+        <td><span class="qscore ${tl.cls}">${r.total_score.toFixed(0)}</span></td>
+        <td class="col-hide-mobile">${tl.emoji}</td>
+        <td>$${r.price ? r.price.toFixed(2) : '—'}</td>
+        <td>${avg ? '$'+avg.toFixed(2) : '—'}</td>
+        <td class="${mosCls}">${mosStr}</td>
+      </tr>`;
+  }).join("");
+  attachRowListeners("quality");
+}
+
+// =========================================================================
+// VUE TECHNIQUE
+// =========================================================================
+function renderTechnicalView() {
+  const D = CURRENT_HORIZON === "swing" ? DATA_SWING : DATA_POSITION;
+  if (!D) {
+    document.getElementById("app").innerHTML = `<div class="empty-state"><p>Fichier technique introuvable</p></div>`;
+    return;
+  }
+  document.getElementById("meta").textContent =
+    `${D.count} actions · ${D.horizon_label} · ${new Date(D.generated_at).toLocaleString('fr-FR')}`;
+
+  const counts = { ACHAT_FORT: 0, ACHAT: 0, NEUTRE: 0, VENTE: 0, VENTE_FORT: 0 };
+  D.results.forEach(r => counts[r.zone]++);
+
+  document.getElementById("app").innerHTML = `
+    <section class="summary">
+      <div class="card buy-strong" data-filter="ACHAT_FORT"><div class="label">🟢🟢 Achat+</div><div class="value">${counts.ACHAT_FORT}</div></div>
+      <div class="card buy" data-filter="ACHAT"><div class="label">🟢 Achat</div><div class="value">${counts.ACHAT}</div></div>
+      <div class="card neutral" data-filter="NEUTRE"><div class="label">⚪ Neutre</div><div class="value">${counts.NEUTRE}</div></div>
+      <div class="card sell" data-filter="VENTE"><div class="label">🔴 Vente</div><div class="value">${counts.VENTE}</div></div>
+      <div class="card sell-strong" data-filter="VENTE_FORT"><div class="label">🔴🔴 Vente+</div><div class="value">${counts.VENTE_FORT}</div></div>
     </section>
     <main>
       <div class="filters">
         <button data-f="all" class="active">Tous</button>
         <button data-f="buy">🟢 Achats</button>
         <button data-f="sell">🔴 Ventes</button>
-        <button data-f="ACHAT_FORT">Achat fort</button>
-        <button data-f="VENTE_FORT">Vente fort</button>
       </div>
-      <input type="search" id="search" class="search-input" placeholder="🔍 Rechercher un ticker...">
+      <input type="search" id="search" class="search-input" placeholder="🔍 Rechercher...">
       <div class="grid">
         <div class="panel">
-          <div class="panel-header">Résultats</div>
+          <div class="panel-header">Signaux techniques</div>
           <div class="table-wrap">
-            <table id="results-table">
-              <thead>
-                <tr>
-                  <th>Ticker</th>
-                  <th>Prix</th>
-                  <th>Var%</th>
-                  <th>RSI</th>
-                  <th class="col-vol">Vol×</th>
-                  <th>Score</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
+            <table>
+              <thead><tr>
+                <th>Ticker</th><th>Prix</th><th>Var%</th><th>RSI</th><th>Vol×</th><th>Score</th>
+              </tr></thead>
+              <tbody id="tech-tbody"></tbody>
             </table>
           </div>
         </div>
         <div class="panel">
           <div class="panel-header">Détail</div>
           <div id="detail" class="detail">
-            <div class="placeholder">Touchez une ligne pour voir le détail</div>
+            <div class="placeholder">Touchez une ligne</div>
           </div>
         </div>
       </div>
     </main>`;
+  attachCommonListeners();
+  renderTable();
+}
 
+function renderTechnicalTable() {
+  const D = CURRENT_HORIZON === "swing" ? DATA_SWING : DATA_POSITION;
+  const search = (document.getElementById("search")?.value || "").toUpperCase();
+  let rows = [...D.results];
+  if (CURRENT_FILTER === "buy") rows = rows.filter(r => r.zone === "ACHAT" || r.zone === "ACHAT_FORT");
+  else if (CURRENT_FILTER === "sell") rows = rows.filter(r => r.zone === "VENTE" || r.zone === "VENTE_FORT");
+  else if (CURRENT_FILTER !== "all") rows = rows.filter(r => r.zone === CURRENT_FILTER);
+  if (search) rows = rows.filter(r => r.ticker.includes(search));
+
+  const sorters = {
+    "default": (a, b) => Math.abs(b.score) - Math.abs(a.score),
+    "score-desc": (a, b) => b.score - a.score,
+    "score-asc": (a, b) => a.score - b.score,
+    "change-desc": (a, b) => b.change_pct - a.change_pct,
+  };
+  rows.sort(sorters[CURRENT_SORT] || sorters.default);
+
+  const tbody = document.getElementById("tech-tbody");
+  tbody.innerHTML = rows.map(r => {
+    const scoreCls = r.score >= 40 ? "strong-pos" : r.score >= 20 ? "pos" :
+                     r.score <= -40 ? "strong-neg" : r.score <= -20 ? "neg" : "neutral";
+    return `
+      <tr data-ticker="${r.ticker}" class="${r.ticker === SELECTED_TICKER ? 'selected' : ''}">
+        <td class="ticker">${r.ticker}</td>
+        <td>$${r.price.toFixed(2)}</td>
+        <td class="${r.change_pct >= 0 ? 'change-pos' : 'change-neg'}">${r.change_pct >= 0 ? '+' : ''}${r.change_pct.toFixed(1)}%</td>
+        <td>${r.rsi.toFixed(0)}</td>
+        <td>${r.volume_ratio.toFixed(1)}</td>
+        <td><span class="score ${scoreCls}">${r.score >= 0 ? '+' : ''}${r.score.toFixed(0)}</span></td>
+      </tr>`;
+  }).join("");
+  attachRowListeners("technical");
+}
+
+// =========================================================================
+// VUE WATCHLIST (intersection qualité + technique)
+// =========================================================================
+function renderWatchlistView() {
+  if (!DATA_QUALITY) {
+    document.getElementById("app").innerHTML = `<div class="empty-state"><p>Données qualité requises. Lancez <code>quality_screener.py</code></p></div>`;
+    return;
+  }
+  const techData = CURRENT_HORIZON === "swing" ? DATA_SWING : DATA_POSITION;
+
+  // Intersection : actions passant le seuil qualité
+  const qualified = DATA_QUALITY.results.filter(r => r.total_score >= MIN_QUALITY_SCORE);
+  const qMap = new Map(qualified.map(r => [r.ticker, r]));
+
+  // Si on a des données techniques, on les associe
+  let merged = qualified.map(q => {
+    const tech = techData ? techData.results.find(t => t.ticker === q.ticker) : null;
+    return { quality: q, technical: tech };
+  });
+
+  document.getElementById("meta").textContent =
+    `${merged.length} actions qualifiées (score qualité ≥ ${MIN_QUALITY_SCORE})`;
+
+  // Catégorisation combinée
+  const cats = { sweet_spot: 0, accumulate: 0, hold: 0, overbought: 0, no_tech: 0 };
+  merged.forEach(m => {
+    if (!m.technical) { cats.no_tech++; return; }
+    const mos = m.quality.valuation.margin_of_safety;
+    const ts = m.technical.score;
+    if (ts >= 20 && mos !== null && mos >= 0.1) cats.sweet_spot++;
+    else if (ts >= 20) cats.accumulate++;
+    else if (ts <= -20) cats.overbought++;
+    else cats.hold++;
+  });
+
+  document.getElementById("app").innerHTML = `
+    <section class="summary">
+      <div class="card excellent" data-filter="sweet_spot">
+        <div class="label">🎯 Sweet spot</div><div class="value">${cats.sweet_spot}</div>
+      </div>
+      <div class="card buy" data-filter="accumulate">
+        <div class="label">🟢 Accumuler</div><div class="value">${cats.accumulate}</div>
+      </div>
+      <div class="card neutral" data-filter="hold">
+        <div class="label">⚪ Garder</div><div class="value">${cats.hold}</div>
+      </div>
+      <div class="card sell" data-filter="overbought">
+        <div class="label">🔴 Allégér</div><div class="value">${cats.overbought}</div>
+      </div>
+      <div class="card average" data-filter="all">
+        <div class="label">📊 Total</div><div class="value">${merged.length}</div>
+      </div>
+    </section>
+    <main>
+      <div class="filters">
+        <button data-f="all" class="active">Tous</button>
+        <button data-f="sweet_spot">🎯 Sweet spot</button>
+        <button data-f="accumulate">🟢 Accumuler</button>
+        <button data-f="hold">⚪ Garder</button>
+        <button data-f="overbought">🔴 Alléger</button>
+      </div>
+      <input type="search" id="search" class="search-input" placeholder="🔍 Rechercher...">
+      <div class="grid">
+        <div class="panel">
+          <div class="panel-header">Watchlist (qualité + timing)</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>Ticker</th><th>Qualité</th><th>Tech</th><th>MoS</th><th>Action</th>
+              </tr></thead>
+              <tbody id="watch-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">Détail combiné</div>
+          <div id="detail" class="detail">
+            <div class="placeholder">Touchez une ligne</div>
+          </div>
+        </div>
+      </div>
+    </main>`;
+  attachCommonListeners();
+  renderTable();
+}
+
+function getWatchlistCategory(m) {
+  if (!m.technical) return "no_tech";
+  const mos = m.quality.valuation.margin_of_safety;
+  const ts = m.technical.score;
+  if (ts >= 20 && mos !== null && mos >= 0.1) return "sweet_spot";
+  if (ts >= 20) return "accumulate";
+  if (ts <= -20) return "overbought";
+  return "hold";
+}
+
+function renderWatchlistTable() {
+  const techData = CURRENT_HORIZON === "swing" ? DATA_SWING : DATA_POSITION;
+  const search = (document.getElementById("search")?.value || "").toUpperCase();
+  let merged = DATA_QUALITY.results
+    .filter(r => r.total_score >= MIN_QUALITY_SCORE)
+    .map(q => ({
+      quality: q,
+      technical: techData ? techData.results.find(t => t.ticker === q.ticker) : null,
+      category: null,
+    }));
+  merged.forEach(m => { m.category = getWatchlistCategory(m); });
+
+  if (CURRENT_FILTER !== "all") merged = merged.filter(m => m.category === CURRENT_FILTER);
+  if (search) merged = merged.filter(m => m.quality.ticker.includes(search));
+
+  const combined = m => {
+    const q = m.quality.total_score;
+    const t = m.technical ? m.technical.score : 0;
+    return q + t * 0.4;
+  };
+  const sorters = {
+    "default": (a, b) => combined(b) - combined(a),
+    "combined": (a, b) => combined(b) - combined(a),
+    "quality": (a, b) => b.quality.total_score - a.quality.total_score,
+    "technical": (a, b) => (b.technical?.score ?? -99) - (a.technical?.score ?? -99),
+    "mos": (a, b) => (b.quality.valuation.margin_of_safety ?? -99) - (a.quality.valuation.margin_of_safety ?? -99),
+  };
+  merged.sort(sorters[CURRENT_SORT] || sorters.default);
+
+  const catEmoji = { sweet_spot: "🎯", accumulate: "🟢", hold: "⚪", overbought: "🔴", no_tech: "—" };
+  const catText  = { sweet_spot: "Sweet spot", accumulate: "Accumuler", hold: "Garder", overbought: "Alléger", no_tech: "—" };
+
+  const tbody = document.getElementById("watch-tbody");
+  tbody.innerHTML = merged.map(m => {
+    const q = m.quality;
+    const t = m.technical;
+    const tl = tierLabel[q.tier];
+    const mos = q.valuation.margin_of_safety;
+    const mosStr = mos === null ? "—" : `${(mos * 100).toFixed(0)}%`;
+    const mosCls = mos === null ? "mos-neutral" : mos > 0.1 ? "mos-pos" : mos < -0.1 ? "mos-neg" : "mos-neutral";
+    const techCell = t ? `<span class="score ${t.score>=40?'strong-pos':t.score>=20?'pos':t.score<=-40?'strong-neg':t.score<=-20?'neg':'neutral'}">${t.score>=0?'+':''}${t.score.toFixed(0)}</span>` : '—';
+    return `
+      <tr data-ticker="${q.ticker}" class="${q.ticker === SELECTED_TICKER ? 'selected' : ''}">
+        <td class="ticker">${q.ticker}</td>
+        <td><span class="qscore ${tl.cls}">${q.total_score.toFixed(0)}</span></td>
+        <td>${techCell}</td>
+        <td class="${mosCls}">${mosStr}</td>
+        <td>${catEmoji[m.category]} ${catText[m.category]}</td>
+      </tr>`;
+  }).join("");
+  attachRowListeners("watchlist");
+}
+
+// =========================================================================
+// Dispatcher
+// =========================================================================
+function renderTable() {
+  if (CURRENT_VIEW === "quality") renderQualityTable();
+  else if (CURRENT_VIEW === "technical") renderTechnicalTable();
+  else renderWatchlistTable();
+}
+
+function attachCommonListeners() {
   document.querySelectorAll(".card[data-filter]").forEach(c => {
     c.addEventListener("click", () => {
       CURRENT_FILTER = c.dataset.filter;
       document.querySelectorAll(".filters button").forEach(b => b.classList.remove("active"));
+      const match = [...document.querySelectorAll(".filters button")].find(b => b.dataset.f === CURRENT_FILTER);
+      if (match) match.classList.add("active");
+      else document.querySelector('.filters button[data-f="all"]').classList.add("active");
       renderTable();
     });
   });
@@ -348,68 +792,125 @@ function render() {
       renderTable();
     });
   });
-  document.getElementById("search").addEventListener("input", renderTable);
-  renderTable();
+  document.getElementById("search")?.addEventListener("input", renderTable);
 }
 
-function renderTable() {
-  const search = (document.getElementById("search")?.value || "").toUpperCase();
-  let rows = [...DATA.results];
-
-  if (CURRENT_FILTER === "buy") rows = rows.filter(r => r.zone === "ACHAT" || r.zone === "ACHAT_FORT");
-  else if (CURRENT_FILTER === "sell") rows = rows.filter(r => r.zone === "VENTE" || r.zone === "VENTE_FORT");
-  else if (CURRENT_FILTER !== "all") rows = rows.filter(r => r.zone === CURRENT_FILTER);
-  if (search) rows = rows.filter(r => r.ticker.includes(search));
-
-  const sorters = {
-    "score-abs": (a, b) => Math.abs(b.score) - Math.abs(a.score),
-    "score-desc": (a, b) => b.score - a.score,
-    "score-asc": (a, b) => a.score - b.score,
-    "change-desc": (a, b) => b.change_pct - a.change_pct,
-    "volume-desc": (a, b) => b.volume_ratio - a.volume_ratio,
-    "ticker": (a, b) => a.ticker.localeCompare(b.ticker),
-  };
-  rows.sort(sorters[CURRENT_SORT]);
-
-  const tbody = document.querySelector("#results-table tbody");
-  tbody.innerHTML = rows.map(r => {
-    const scoreCls = r.score >= 40 ? "strong-pos" : r.score >= 20 ? "pos" :
-                     r.score <= -40 ? "strong-neg" : r.score <= -20 ? "neg" : "neutral";
-    return `
-      <tr data-ticker="${r.ticker}" class="${r.ticker === SELECTED_TICKER ? 'selected' : ''}">
-        <td class="ticker">${r.ticker}</td>
-        <td>$${r.price.toFixed(2)}</td>
-        <td class="${r.change_pct >= 0 ? 'change-pos' : 'change-neg'}">${r.change_pct >= 0 ? '+' : ''}${r.change_pct.toFixed(1)}%</td>
-        <td>${r.rsi.toFixed(0)}</td>
-        <td class="col-vol ${r.volume_ratio >= 1.5 ? 'vol-high' : ''}">${r.volume_ratio.toFixed(1)}</td>
-        <td><span class="score ${scoreCls}">${r.score >= 0 ? '+' : ''}${r.score.toFixed(0)}</span></td>
-      </tr>`;
-  }).join("");
-
-  tbody.querySelectorAll("tr").forEach(tr => {
+function attachRowListeners(kind) {
+  document.querySelectorAll(`#${kind === 'quality' ? 'quality' : kind === 'technical' ? 'tech' : 'watch'}-tbody tr`).forEach(tr => {
     tr.addEventListener("click", () => {
       SELECTED_TICKER = tr.dataset.ticker;
-      document.querySelectorAll("#results-table tbody tr").forEach(x => x.classList.remove("selected"));
+      document.querySelectorAll(`tbody tr`).forEach(x => x.classList.remove("selected"));
       tr.classList.add("selected");
-      renderDetail(DATA.results.find(r => r.ticker === SELECTED_TICKER));
-      // Scroll fluide vers le détail sur mobile
+      if (kind === "quality") renderQualityDetail(DATA_QUALITY.results.find(r => r.ticker === SELECTED_TICKER));
+      else if (kind === "technical") {
+        const D = CURRENT_HORIZON === "swing" ? DATA_SWING : DATA_POSITION;
+        renderTechnicalDetail(D.results.find(r => r.ticker === SELECTED_TICKER));
+      } else {
+        const q = DATA_QUALITY.results.find(r => r.ticker === SELECTED_TICKER);
+        const techData = CURRENT_HORIZON === "swing" ? DATA_SWING : DATA_POSITION;
+        const t = techData ? techData.results.find(r => r.ticker === SELECTED_TICKER) : null;
+        renderCombinedDetail(q, t);
+      }
       if (window.innerWidth <= 900) {
         document.getElementById("detail").scrollIntoView({ behavior: "smooth", block: "start" });
       }
     });
   });
-
-  if (rows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--muted)">Aucun résultat</td></tr>`;
-  }
 }
 
-function renderDetail(r) {
+// =========================================================================
+// DETAIL QUALITÉ
+// =========================================================================
+function formatPct(v, decimals=1) {
+  if (v === null || v === undefined || isNaN(v)) return "—";
+  return (v * 100).toFixed(decimals) + "%";
+}
+function formatNum(v, decimals=2) {
+  if (v === null || v === undefined || isNaN(v)) return "—";
+  return Number(v).toFixed(decimals);
+}
+
+function renderQualityDetail(r) {
+  if (!r) return;
+  const tl = tierLabel[r.tier];
+  const vl = verdictLabel[r.verdict];
+  const m = r.key_metrics;
+  const v = r.valuation;
+
+  const scoreBar = (label, val, max) => {
+    const pct = Math.max(0, Math.min(100, (val / max) * 100));
+    const cls = pct < 40 ? "low" : pct < 70 ? "mid" : "high";
+    return `<div class="score-bar"><div class="label">${label}</div>
+      <div class="bar"><div class="fill ${cls}" style="width:${pct}%"></div></div>
+      <div class="val">${val.toFixed(1)}/${max}</div></div>`;
+  };
+
+  const metricCard = (k, v, fmt, thresholds) => {
+    const txt = fmt(v);
+    let cls = "";
+    if (v !== null && v !== undefined && thresholds) {
+      if (v >= thresholds.good) cls = "ok";
+      else if (v <= thresholds.bad) cls = "bad";
+      else cls = "warn";
+    }
+    return `<div class="metric ${cls}"><div class="k">${k}</div><div class="v">${txt}</div></div>`;
+  };
+
+  document.getElementById("detail").innerHTML = `
+    <div class="detail-header">
+      <div>
+        <div class="ticker-big">${r.ticker}</div>
+        <div class="sector-tag">${r.sector || ""} · ${r.industry || ""}</div>
+        <div style="margin-top:6px">${tl.emoji} <span class="qscore ${tl.cls}">${r.total_score.toFixed(1)}</span> <strong>${tl.text}</strong></div>
+      </div>
+      <div>
+        <div class="price-big">$${r.price ? r.price.toFixed(2) : '—'}</div>
+      </div>
+    </div>
+
+    <div class="verdict-banner ${vl.cls}">${vl.text}${v.margin_of_safety !== null ? ` (${v.margin_of_safety >= 0 ? '+' : ''}${(v.margin_of_safety*100).toFixed(0)}%)` : ''}</div>
+
+    <div class="section-label">Valeur intrinsèque estimée</div>
+    <div class="valuation-grid">
+      <div class="valuation-box highlight"><div class="k">Moyenne</div><div class="v">$${v.average ? v.average.toFixed(2) : '—'}</div></div>
+      <div class="valuation-box"><div class="k">DCF</div><div class="v">$${v.dcf ? v.dcf.toFixed(2) : '—'}</div></div>
+      <div class="valuation-box"><div class="k">PER Lynch</div><div class="v">$${v.peg_lynch ? v.peg_lynch.toFixed(2) : '—'}</div></div>
+      <div class="valuation-box"><div class="k">Graham</div><div class="v">$${v.graham ? v.graham.toFixed(2) : '—'}</div></div>
+    </div>
+
+    <div class="section-label">Score qualité (détail)</div>
+    ${scoreBar("MOAT", r.sub_scores.moat || 0, 25)}
+    ${scoreBar("Rentabilité", r.sub_scores.profitability || 0, 20)}
+    ${scoreBar("Santé fin.", r.sub_scores.financial_health || 0, 20)}
+    ${scoreBar("Stabilité", r.sub_scores.stability || 0, 15)}
+    ${scoreBar("Croissance", r.sub_scores.growth || 0, 10)}
+    ${scoreBar("Marge sécu.", Math.max(0, r.mos_score || 0), 10)}
+
+    <div class="section-label">Métriques clés</div>
+    <div class="metrics-grid">
+      ${metricCard("ROE", m.roe, formatPct, {good: 0.15, bad: 0.05})}
+      ${metricCard("ROIC", m.roic, formatPct, {good: 0.15, bad: 0.05})}
+      ${metricCard("Marge brute", m.gross_margin, formatPct, {good: 0.40, bad: 0.20})}
+      ${metricCard("Marge op.", m.operating_margin, formatPct, {good: 0.20, bad: 0.05})}
+      ${metricCard("Marge nette", m.net_margin, formatPct, {good: 0.15, bad: 0.05})}
+      ${metricCard("PER", m.pe_ratio, v => formatNum(v, 1), {good: -25, bad: 35})}
+      ${metricCard("PER Fwd", m.forward_pe, v => formatNum(v, 1))}
+      ${metricCard("PEG", m.peg_ratio, v => formatNum(v, 2))}
+      ${metricCard("P/B", m.price_to_book, v => formatNum(v, 2))}
+      ${metricCard("Dette/Eq", m.debt_to_equity, v => formatNum(v > 10 ? v / 100 : v, 2))}
+      ${metricCard("Div yield", m.dividend_yield, formatPct)}
+    </div>
+  `;
+}
+
+// =========================================================================
+// DETAIL TECHNIQUE (identique à avant)
+// =========================================================================
+function renderTechnicalDetail(r) {
   if (!r) return;
   const zl = zoneLabel[r.zone];
   const scoreCls = r.score >= 40 ? "strong-pos" : r.score >= 20 ? "pos" :
                    r.score <= -40 ? "strong-neg" : r.score <= -20 ? "neg" : "neutral";
-
   const signalsHtml = r.signals.length === 0
     ? `<div style="color:var(--muted);font-size:13px">Aucun signal fort détecté</div>`
     : r.signals.map(s => {
@@ -439,12 +940,10 @@ function renderDetail(r) {
       <div class="metric"><div class="k">MACD</div><div class="v">${r.macd_hist.toFixed(2)}</div></div>
       <div class="metric"><div class="k">Vol ×</div><div class="v">${r.volume_ratio.toFixed(1)}</div></div>
       <div class="metric"><div class="k">ATR</div><div class="v">${r.atr.toFixed(1)}</div></div>
-      <div class="metric"><div class="k">EMA+</div><div class="v">${r.ema_fast.toFixed(0)}</div></div>
-      <div class="metric"><div class="k">EMA-</div><div class="v">${r.ema_slow.toFixed(0)}</div></div>
     </div>
     <div class="section-label">Signaux détectés</div>
     <div class="signals-list">${signalsHtml}</div>
-    <div class="section-label">Graphique (60 dernières bougies)</div>
+    <div class="section-label">Graphique (60 bougies)</div>
     <div id="chart-container"><canvas id="chart"></canvas></div>
   `;
   renderChart(r);
@@ -454,12 +953,8 @@ function renderChart(r) {
   if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
   const ctx = document.getElementById("chart");
   if (!ctx || !r.history || r.history.length === 0) return;
-
-  const candles = r.history.map(b => ({
-    x: new Date(b.date).valueOf(), o: b.open, h: b.high, l: b.low, c: b.close
-  }));
+  const candles = r.history.map(b => ({ x: new Date(b.date).valueOf(), o: b.open, h: b.high, l: b.low, c: b.close }));
   const volumes = r.history.map(b => ({ x: new Date(b.date).valueOf(), y: b.volume }));
-
   chartInstance = new Chart(ctx, {
     data: {
       datasets: [
@@ -481,8 +976,71 @@ function renderChart(r) {
   });
 }
 
+// =========================================================================
+// DETAIL COMBINÉ (Watchlist)
+// =========================================================================
+function renderCombinedDetail(q, t) {
+  if (!q) return;
+  const tl = tierLabel[q.tier];
+  const vl = verdictLabel[q.verdict];
+  const v = q.valuation;
+
+  let recommendation = "";
+  if (t) {
+    const mos = v.margin_of_safety;
+    if (t.score >= 20 && mos !== null && mos >= 0.1) {
+      recommendation = `<div class="verdict-banner tres-sous-valorise">🎯 Sweet spot : qualité solide, sous-valorisée, et timing technique favorable</div>`;
+    } else if (t.score >= 20) {
+      recommendation = `<div class="verdict-banner sous-valorise">🟢 Bon timing technique sur une action de qualité — mais surveillez la valorisation</div>`;
+    } else if (t.score <= -20) {
+      recommendation = `<div class="verdict-banner survalorise">🔴 Signaux techniques baissiers — attendre un meilleur point d'entrée</div>`;
+    } else {
+      recommendation = `<div class="verdict-banner juste-prix">⚪ Qualité OK mais signaux techniques neutres — patience</div>`;
+    }
+  } else {
+    recommendation = `<div class="verdict-banner juste-prix">Pas de données techniques disponibles</div>`;
+  }
+
+  document.getElementById("detail").innerHTML = `
+    <div class="detail-header">
+      <div>
+        <div class="ticker-big">${q.ticker}</div>
+        <div class="sector-tag">${q.sector || ""}</div>
+        <div style="margin-top:6px">
+          ${tl.emoji} <span class="qscore ${tl.cls}">${q.total_score.toFixed(0)}</span>
+          ${t ? `· Tech <span class="score ${t.score>=40?'strong-pos':t.score>=20?'pos':t.score<=-40?'strong-neg':t.score<=-20?'neg':'neutral'}">${t.score>=0?'+':''}${t.score.toFixed(0)}</span>` : ''}
+        </div>
+      </div>
+      <div>
+        <div class="price-big">$${q.price ? q.price.toFixed(2) : '—'}</div>
+      </div>
+    </div>
+    ${recommendation}
+
+    <div class="section-label">Valorisation</div>
+    <div class="valuation-grid">
+      <div class="valuation-box highlight"><div class="k">Juste valeur (moy.)</div><div class="v">$${v.average ? v.average.toFixed(2) : '—'}</div></div>
+      <div class="valuation-box"><div class="k">Marge de sécurité</div><div class="v">${v.margin_of_safety !== null ? (v.margin_of_safety*100).toFixed(0)+'%' : '—'}</div></div>
+    </div>
+
+    ${t ? `
+      <div class="section-label">Signaux techniques (${CURRENT_HORIZON})</div>
+      <div class="signals-list">
+        ${t.signals.length ? t.signals.map(s => {
+          const cls = s.dir === "bull" ? "bull" : s.dir === "bear" ? "bear" : "";
+          const icon = s.dir === "bull" ? "↑" : s.dir === "bear" ? "↓" : "•";
+          return `<span class="chip ${cls}">${icon} ${s.name.replaceAll('_', ' ')}</span>`;
+        }).join("") : '<div style="color:var(--muted);font-size:13px">Aucun signal</div>'}
+      </div>
+      <div class="section-label">Graphique</div>
+      <div id="chart-container"><canvas id="chart"></canvas></div>
+    ` : ''}
+  `;
+  if (t) renderChart(t);
+}
+
 // --- Boot ---
-loadHorizon("swing");
+loadAll();
 </script>
 </body>
 </html>
