@@ -1,4 +1,4 @@
-name: Screener Nasdaq 100
+name: Screener Multi-Marchés
 
 on:
   workflow_dispatch:
@@ -15,33 +15,83 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  screen-and-deploy:
+  # ===========================================================================
+  # JOB 1 : Nasdaq 100 (US) — rapide (~8 min)
+  # ===========================================================================
+  screen-us:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
-
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install yfinance pandas numpy
+        run: pip install yfinance pandas numpy
+      - name: Run quality screener (US)
+        run: python quality_screener.py --universe nasdaq100 --output-dir public_us --delay 0.1
+      - name: Run technical screener (US)
+        run: python screener.py --universe nasdaq100 --horizon all --output-dir public_us --delay 0.1
+      - name: Upload US artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: us-results
+          path: public_us/*.json
+          retention-days: 1
+
+  # ===========================================================================
+  # JOB 2 : STOXX 600 (EU) — long (~45 min)
+  # ===========================================================================
+  screen-eu:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: Install dependencies
+        run: pip install yfinance pandas numpy
+      - name: Run quality screener (EU)
+        run: python quality_screener.py --universe stoxx600 --output-dir public_eu --delay 0.3
+      - name: Run technical screener (EU)
+        run: python screener.py --universe stoxx600 --horizon all --output-dir public_eu --delay 0.3
+      - name: Upload EU artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-results
+          path: public_eu/*.json
+          retention-days: 1
+
+  # ===========================================================================
+  # JOB 3 : Déploiement (attend les 2 autres)
+  # ===========================================================================
+  deploy:
+    needs: [screen-us, screen-eu]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Prepare public folder
         run: |
           mkdir -p public
           cp index.html public/
 
-      - name: Run quality screener
-        run: python quality_screener.py --output-dir public
+      - name: Download US results
+        uses: actions/download-artifact@v4
+        with:
+          name: us-results
+          path: public/
 
-      - name: Run technical screener (all horizons)
-        run: python screener.py --horizon all --output-dir public
+      - name: Download EU results
+        uses: actions/download-artifact@v4
+        with:
+          name: eu-results
+          path: public/
+
+      - name: List deployed files
+        run: ls -la public/
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -54,4 +104,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
