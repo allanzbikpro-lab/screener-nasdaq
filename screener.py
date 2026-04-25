@@ -23,6 +23,8 @@ import yfinance as yf
 
 warnings.filterwarnings("ignore")
 
+from universes import get_universe, ticker_to_flag
+
 # ---------------------------------------------------------------------------
 # Configuration par horizon
 # ---------------------------------------------------------------------------
@@ -47,18 +49,7 @@ HORIZON_CONFIG = {
     },
 }
 
-NASDAQ100 = [
-    "AAPL", "MSFT", "GOOGL", "GOOG", "AMZN", "NVDA", "META", "TSLA", "AVGO", "COST",
-    "NFLX", "ADBE", "PEP", "ASML", "TMUS", "CSCO", "AZN", "LIN", "INTU", "AMD",
-    "QCOM", "TXN", "ISRG", "CMCSA", "AMGN", "HON", "AMAT", "BKNG", "PANW", "ADP",
-    "GILD", "VRTX", "ADI", "MU", "LRCX", "MELI", "SBUX", "PYPL", "MDLZ", "REGN",
-    "KLAC", "SNPS", "CDNS", "PLTR", "CRWD", "MAR", "CEG", "ORLY", "CTAS", "FTNT",
-    "CHTR", "MNST", "WDAY", "ABNB", "ADSK", "NXPI", "PCAR", "ROP", "DASH", "FANG",
-    "ROST", "MRVL", "AEP", "KDP", "FAST", "PAYX", "CPRT", "ODFL", "EA", "KHC",
-    "BKR", "IDXX", "CHKP", "VRSK", "CSGP", "EXC", "CTSH", "XEL", "CCEP", "GEHC",
-    "LULU", "TTD", "ANSS", "DDOG", "ZS", "TEAM", "BIIB", "ON", "CDW", "WBD",
-    "MDB", "GFS", "DXCM", "ARM", "MRNA", "ILMN", "SMCI", "TTWO", "WBA", "SIRI",
-]
+NASDAQ100 = None  # Fallback retiré au profit de get_universe
 
 
 # ---------------------------------------------------------------------------
@@ -283,6 +274,7 @@ def analyze_ticker(ticker, config):
 
         return {
             "ticker": ticker,
+            "flag": ticker_to_flag(ticker),
             "price": round(float(last["Close"]), 2),
             "change_pct": round(float((last["Close"] / prev["Close"] - 1) * 100), 2),
             "volume_ratio": round(vr, 2),
@@ -305,13 +297,14 @@ def analyze_ticker(ticker, config):
 # ---------------------------------------------------------------------------
 # Orchestration
 # ---------------------------------------------------------------------------
-def run_horizon(horizon, tickers, output_path):
+def run_horizon(horizon, tickers, output_path, universe_slug=None, universe_label=None, delay=0.0):
+    import time
     config = HORIZON_CONFIG[horizon]
     print(f"\n{'='*60}\n  {config['label']} — {len(tickers)} tickers\n{'='*60}")
 
     results = []
     for i, t in enumerate(tickers, 1):
-        print(f"[{i:3}/{len(tickers)}] {t:6} ", end="", flush=True)
+        print(f"[{i:3}/{len(tickers)}] {t:12} ", end="", flush=True)
         r = analyze_ticker(t, config)
         if r:
             results.append(r)
@@ -320,12 +313,16 @@ def run_horizon(horizon, tickers, output_path):
             print(f"{e} score={r['score']:+6.1f}  {r['zone']}")
         else:
             print("—")
+        if delay > 0:
+            time.sleep(delay)
 
     results.sort(key=lambda x: abs(x["score"]), reverse=True)
     output = {
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "horizon": horizon,
         "horizon_label": config["label"],
+        "universe": universe_slug,
+        "universe_label": universe_label,
         "count": len(results),
         "results": results,
     }
@@ -349,20 +346,24 @@ def load_quality_filter(quality_file, min_score):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Screener Nasdaq 100")
+    parser = argparse.ArgumentParser(description="Screener technique multi-univers")
+    parser.add_argument("--universe", default="nasdaq100",
+                        help="Slug de l'univers (nasdaq100, stoxx600)")
     parser.add_argument("--horizon", choices=["day", "swing", "position", "all"],
                         default="swing", help="Horizon (ou 'all' pour tous)")
-    parser.add_argument("--limit", type=int, default=None, help="Limiter tickers (debug)")
-    parser.add_argument("--output-dir", default=".", help="Dossier de sortie")
+    parser.add_argument("--limit", type=int, default=None)
+    parser.add_argument("--output-dir", default=".")
     parser.add_argument("--quality-file", default=None,
-                        help="Fichier JSON qualité pour filtrer (ex: public/results_quality.json)")
+                        help="Fichier qualité pour filtrer (optionnel)")
     parser.add_argument("--quality-min", type=float, default=0,
-                        help="Score qualité minimum pour inclure un ticker (0-100)")
+                        help="Score qualité minimum")
+    parser.add_argument("--delay", type=float, default=0.0,
+                        help="Délai entre tickers (anti rate-limit)")
     args = parser.parse_args()
 
-    tickers = NASDAQ100[: args.limit] if args.limit else NASDAQ100
+    universe = get_universe(args.universe)
+    tickers = universe["tickers"][: args.limit] if args.limit else universe["tickers"]
 
-    # Filtre qualité optionnel
     if args.quality_file and args.quality_min > 0:
         qualified = load_quality_filter(args.quality_file, args.quality_min)
         if qualified:
@@ -372,13 +373,18 @@ def main():
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    # Les fichiers de sortie portent le slug de l'univers
+    suffix = f"_{args.universe}"
+
     if args.horizon == "all":
         for h in ["swing", "position"]:
-            run_horizon(h, tickers, str(out_dir / f"results_{h}.json"))
-        shutil.copy(out_dir / "results_swing.json", out_dir / "results.json")
-        print(f"\n  ✓ Tous horizons générés dans {out_dir.absolute()}\n")
+            run_horizon(h, tickers, str(out_dir / f"results_{h}{suffix}.json"),
+                        args.universe, universe["label"], args.delay)
+        print(f"\n  ✓ Tous horizons générés pour {universe['label']}\n")
     else:
-        run_horizon(args.horizon, tickers, str(out_dir / "results.json"))
+        run_horizon(args.horizon, tickers,
+                    str(out_dir / f"results_{args.horizon}{suffix}.json"),
+                    args.universe, universe["label"], args.delay)
 
 
 if __name__ == "__main__":

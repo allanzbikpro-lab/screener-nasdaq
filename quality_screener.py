@@ -22,19 +22,7 @@ import yfinance as yf
 
 warnings.filterwarnings("ignore")
 
-# Liste Nasdaq 100 (mêmes tickers que le screener technique)
-NASDAQ100 = [
-    "AAPL", "MSFT", "GOOGL", "GOOG", "AMZN", "NVDA", "META", "TSLA", "AVGO", "COST",
-    "NFLX", "ADBE", "PEP", "ASML", "TMUS", "CSCO", "AZN", "LIN", "INTU", "AMD",
-    "QCOM", "TXN", "ISRG", "CMCSA", "AMGN", "HON", "AMAT", "BKNG", "PANW", "ADP",
-    "GILD", "VRTX", "ADI", "MU", "LRCX", "MELI", "SBUX", "PYPL", "MDLZ", "REGN",
-    "KLAC", "SNPS", "CDNS", "PLTR", "CRWD", "MAR", "CEG", "ORLY", "CTAS", "FTNT",
-    "CHTR", "MNST", "WDAY", "ABNB", "ADSK", "NXPI", "PCAR", "ROP", "DASH", "FANG",
-    "ROST", "MRVL", "AEP", "KDP", "FAST", "PAYX", "CPRT", "ODFL", "EA", "KHC",
-    "BKR", "IDXX", "CHKP", "VRSK", "CSGP", "EXC", "CTSH", "XEL", "CCEP", "GEHC",
-    "LULU", "TTD", "ANSS", "DDOG", "ZS", "TEAM", "BIIB", "ON", "CDW", "WBD",
-    "MDB", "GFS", "DXCM", "ARM", "MRNA", "ILMN", "SMCI", "TTWO", "WBA", "SIRI",
-]
+from universes import get_universe, ticker_to_flag
 
 # Paramètres économiques (à ajuster selon contexte macro)
 RISK_FREE_RATE = 0.045      # Rendement Treasury 10 ans ~4.5%
@@ -520,6 +508,7 @@ def analyze_ticker(ticker):
 
     return {
         "ticker": ticker,
+        "flag": ticker_to_flag(ticker),
         "name": f.get("name"),
         "sector": f.get("sector"),
         "industry": f.get("industry"),
@@ -554,24 +543,33 @@ def analyze_ticker(ticker):
 # Main
 # ---------------------------------------------------------------------------
 def main():
-    parser = argparse.ArgumentParser(description="Screener Qualité Nasdaq 100")
+    parser = argparse.ArgumentParser(description="Screener Qualité multi-univers")
+    parser.add_argument("--universe", default="nasdaq100",
+                        help="Slug de l'univers (nasdaq100, stoxx600)")
     parser.add_argument("--limit", type=int, default=None)
-    parser.add_argument("--output", default="results_quality.json")
+    parser.add_argument("--output", default=None,
+                        help="Nom du fichier de sortie (défaut: results_quality_<universe>.json)")
     parser.add_argument("--output-dir", default=".")
+    parser.add_argument("--delay", type=float, default=0.0,
+                        help="Délai en secondes entre chaque ticker (anti rate-limit)")
     args = parser.parse_args()
 
-    tickers = NASDAQ100[: args.limit] if args.limit else NASDAQ100
+    import time
+    universe = get_universe(args.universe)
+    tickers = universe["tickers"][: args.limit] if args.limit else universe["tickers"]
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    out_name = args.output or f"results_quality_{args.universe}.json"
+
     print(f"\n{'='*60}")
-    print(f"  Screener Qualité Nasdaq 100 (Buffett/Munger)")
+    print(f"  Screener Qualité — {universe['label']}")
     print(f"  {len(tickers)} tickers à analyser")
     print(f"{'='*60}\n")
 
     results = []
     for i, t in enumerate(tickers, 1):
-        print(f"[{i:3}/{len(tickers)}] {t:6} ", end="", flush=True)
+        print(f"[{i:3}/{len(tickers)}] {t:12} ", end="", flush=True)
         r = analyze_ticker(t)
         if r:
             results.append(r)
@@ -582,26 +580,29 @@ def main():
             print(f"{emoji} score={r['total_score']:5.1f}  {r['tier']:10}  {mos_str}")
         else:
             print("— (données indisponibles)")
+        if args.delay > 0:
+            time.sleep(args.delay)
 
     results.sort(key=lambda x: x["total_score"], reverse=True)
 
     output = {
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "type": "quality",
+        "universe": args.universe,
+        "universe_label": universe["label"],
         "count": len(results),
         "results": results,
     }
 
-    out_path = out_dir / args.output
+    out_path = out_dir / out_name
     out_path.write_text(json.dumps(output, indent=2, ensure_ascii=False, default=str))
 
-    # Résumé
     excellent = [r for r in results if r["tier"] == "EXCELLENTE"]
     good = [r for r in results if r["tier"] == "BONNE"]
     sousval = [r for r in results if r["verdict"] in ["SOUS_VALORISE", "TRES_SOUS_VALORISE"]]
 
     print(f"\n{'='*60}")
-    print(f"  RÉSUMÉ")
+    print(f"  RÉSUMÉ — {universe['label']}")
     print(f"{'='*60}")
     print(f"  ⭐⭐⭐ Excellentes : {len(excellent):3}  {[r['ticker'] for r in excellent[:10]]}")
     print(f"  ⭐⭐  Bonnes       : {len(good):3}  {[r['ticker'] for r in good[:10]]}")
