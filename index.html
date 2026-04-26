@@ -254,6 +254,117 @@
   }
   .chip.bull { background: rgba(34, 197, 94, 0.15); border-color: var(--green); color: var(--green); }
   .chip.bear { background: rgba(239, 68, 68, 0.15); border-color: var(--red); color: var(--red); }
+
+  /* INDICATEURS QUALITÉ DÉTAILLÉS */
+  .indicator-card {
+    background: var(--panel-light);
+    border-left: 4px solid var(--muted);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    transition: all 0.2s;
+  }
+  .indicator-card.green { border-left-color: var(--green); }
+  .indicator-card.yellow { border-left-color: var(--yellow); }
+  .indicator-card.red { border-left-color: var(--red); }
+  .indicator-card.gray { border-left-color: var(--muted); opacity: 0.7; }
+
+  .indicator-header {
+    display: flex; justify-content: space-between; align-items: center;
+    cursor: pointer; user-select: none;
+  }
+  .indicator-title { font-weight: 600; font-size: 13px; flex: 1; }
+  .indicator-value {
+    font-weight: 700; font-size: 14px;
+    padding: 3px 10px; border-radius: 6px; min-width: 60px; text-align: center;
+  }
+  .indicator-value.green { background: rgba(34, 197, 94, 0.2); color: var(--green); }
+  .indicator-value.yellow { background: rgba(234, 179, 8, 0.2); color: var(--yellow); }
+  .indicator-value.red { background: rgba(239, 68, 68, 0.2); color: var(--red); }
+  .indicator-value.gray { background: var(--panel); color: var(--muted); }
+  .indicator-status {
+    width: 10px; height: 10px; border-radius: 50%; margin-right: 8px;
+    flex-shrink: 0;
+  }
+  .indicator-status.green { background: var(--green); }
+  .indicator-status.yellow { background: var(--yellow); }
+  .indicator-status.red { background: var(--red); }
+  .indicator-status.gray { background: var(--muted); }
+
+  .indicator-body {
+    margin-top: 10px; padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 12px; line-height: 1.5;
+    display: none;
+  }
+  .indicator-card.expanded .indicator-body { display: block; }
+  .indicator-body .desc { color: var(--muted); margin-bottom: 8px; }
+  .indicator-body .thresholds {
+    background: var(--panel); padding: 6px 10px; border-radius: 5px;
+    font-family: monospace; font-size: 11px; margin-bottom: 6px;
+  }
+  .indicator-body .interp {
+    color: var(--text); font-style: italic; padding: 6px 0;
+  }
+  .indicator-arrow {
+    margin-left: 8px; color: var(--muted); font-size: 11px;
+    transition: transform 0.2s;
+  }
+  .indicator-card.expanded .indicator-arrow { transform: rotate(90deg); }
+
+  /* SCORE GLOBAL HEADER */
+  .quality-summary-strip {
+    display: flex; gap: 8px; margin: 10px 0;
+    padding: 10px; background: var(--panel-light); border-radius: 8px;
+    flex-wrap: wrap; justify-content: space-around;
+  }
+  .qss-item { text-align: center; min-width: 60px; }
+  .qss-item .num { font-size: 20px; font-weight: 700; }
+  .qss-item .lab { font-size: 10px; color: var(--muted); text-transform: uppercase; }
+  .qss-item.green .num { color: var(--green); }
+  .qss-item.yellow .num { color: var(--yellow); }
+  .qss-item.red .num { color: var(--red); }
+
+  /* DCF INTERACTIF */
+  .dcf-section {
+    background: var(--panel-light); padding: 14px;
+    border-radius: 10px; margin-top: 10px;
+    border: 1px solid var(--gold);
+  }
+  .dcf-result {
+    display: flex; justify-content: space-between;
+    align-items: baseline; margin-bottom: 12px;
+    flex-wrap: wrap; gap: 8px;
+  }
+  .dcf-result .ival { font-size: 24px; font-weight: 700; color: var(--gold); }
+  .dcf-result .price { font-size: 14px; color: var(--muted); }
+  .dcf-mos { font-size: 16px; font-weight: 700; }
+  .dcf-mos.pos { color: var(--green); }
+  .dcf-mos.neg { color: var(--red); }
+
+  .dcf-control { margin: 10px 0; }
+  .dcf-control label {
+    display: flex; justify-content: space-between;
+    font-size: 12px; color: var(--muted); margin-bottom: 4px;
+  }
+  .dcf-control label .v { color: var(--text); font-weight: 600; }
+  .dcf-control input[type="range"] {
+    width: 100%; height: 4px; border-radius: 2px;
+    background: var(--border); outline: none; -webkit-appearance: none;
+  }
+  .dcf-control input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 18px; height: 18px;
+    border-radius: 50%; background: var(--gold); cursor: pointer;
+  }
+  .dcf-control input[type="range"]::-moz-range-thumb {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--gold); cursor: pointer; border: none;
+  }
+  .dcf-reset {
+    background: var(--panel); border: 1px solid var(--border);
+    color: var(--text); padding: 6px 12px; border-radius: 6px;
+    font-size: 11px; cursor: pointer; margin-top: 8px;
+  }
 </style>
 </head>
 <body>
@@ -889,74 +1000,190 @@ function renderQualityDetail(r) {
   if (!r) return;
   const tl = tierLabel[r.tier];
   const vl = verdictLabel[r.verdict];
-  const m = r.key_metrics;
   const v = r.valuation;
+  const indicators = r.indicators || [];
+  const cur = r.currency === "EUR" ? "€" : (r.currency === "GBP" ? "£" : "$");
 
-  const scoreBar = (label, val, max) => {
-    const pct = Math.max(0, Math.min(100, (val / max) * 100));
-    const cls = pct < 40 ? "low" : pct < 70 ? "mid" : "high";
-    return `<div class="score-bar"><div class="label">${label}</div>
-      <div class="bar"><div class="fill ${cls}" style="width:${pct}%"></div></div>
-      <div class="val">${val.toFixed(1)}/${max}</div></div>`;
-  };
+  // Bandeau résumé : compteurs verts/jaunes/rouges
+  const summaryStrip = `
+    <div class="quality-summary-strip">
+      <div class="qss-item green"><div class="num">${r.n_green || 0}</div><div class="lab">🟢 Verts</div></div>
+      <div class="qss-item yellow"><div class="num">${r.n_yellow || 0}</div><div class="lab">🟡 Jaunes</div></div>
+      <div class="qss-item red"><div class="num">${r.n_red || 0}</div><div class="lab">🔴 Rouges</div></div>
+      <div class="qss-item"><div class="num">${r.score.toFixed(0)}</div><div class="lab">Score /100</div></div>
+    </div>`;
 
-  const metricCard = (k, v, fmt, thresholds) => {
-    const txt = fmt(v);
-    let cls = "";
-    if (v !== null && v !== undefined && thresholds) {
-      if (v >= thresholds.good) cls = "ok";
-      else if (v <= thresholds.bad) cls = "bad";
-      else cls = "warn";
-    }
-    return `<div class="metric ${cls}"><div class="k">${k}</div><div class="v">${txt}</div></div>`;
-  };
+  // 8 indicateurs détaillés
+  const indicatorsHtml = indicators.map((ind, idx) => `
+    <div class="indicator-card ${ind.status}" data-idx="${idx}">
+      <div class="indicator-header" onclick="toggleIndicator(${idx})">
+        <span class="indicator-status ${ind.status}"></span>
+        <span class="indicator-title">${ind.label}</span>
+        <span class="indicator-value ${ind.status}">${ind.value_fmt}</span>
+        <span class="indicator-arrow">▶</span>
+      </div>
+      <div class="indicator-body">
+        <div class="desc">${ind.description}</div>
+        <div class="thresholds">${ind.thresholds}</div>
+        <div class="interp">${ind.interpretation}</div>
+      </div>
+    </div>`).join("");
+
+  // Bandeau verdict valorisation
+  const valuationBanner = `<div class="verdict-banner ${vl.cls}">${vl.text}${v.margin_of_safety !== null ? ` (${v.margin_of_safety >= 0 ? '+' : ''}${(v.margin_of_safety*100).toFixed(0)}%)` : ''}</div>`;
+
+  // Section DCF interactive
+  const dcfData = v.dcf_data;
+  const dcfHtml = dcfData ? `
+    <div class="dcf-section" id="dcf-section">
+      <div class="section-label" style="margin-top:0;color:var(--gold)">💎 DCF interactif (Discounted Cash Flow)</div>
+      <div class="dcf-result">
+        <div>
+          <div style="font-size:11px;color:var(--muted)">Valeur intrinsèque</div>
+          <div class="ival" id="dcf-ival">${cur}${dcfData.intrinsic_value ? dcfData.intrinsic_value.toFixed(2) : '—'}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="price">Prix actuel : ${cur}${r.price ? r.price.toFixed(2) : '—'}</div>
+          <div class="dcf-mos" id="dcf-mos">${v.margin_of_safety !== null ? `MoS ${v.margin_of_safety >= 0 ? '+' : ''}${(v.margin_of_safety*100).toFixed(0)}%` : ''}</div>
+        </div>
+      </div>
+
+      <div class="dcf-control">
+        <label>Croissance FCF 5 ans <span class="v" id="dcf-g5y-val">${(dcfData.growth_5y*100).toFixed(1)}%</span></label>
+        <input type="range" id="dcf-g5y" min="-5" max="20" step="0.5" value="${(dcfData.growth_5y*100).toFixed(1)}">
+      </div>
+      <div class="dcf-control">
+        <label>Taux d'actualisation (WACC) <span class="v" id="dcf-wacc-val">${(dcfData.wacc*100).toFixed(1)}%</span></label>
+        <input type="range" id="dcf-wacc" min="6" max="15" step="0.25" value="${(dcfData.wacc*100).toFixed(2)}">
+      </div>
+      <div class="dcf-control">
+        <label>Croissance terminale <span class="v" id="dcf-tg-val">${(dcfData.terminal_growth*100).toFixed(1)}%</span></label>
+        <input type="range" id="dcf-tg" min="0" max="4" step="0.25" value="${(dcfData.terminal_growth*100).toFixed(2)}">
+      </div>
+      <div class="dcf-control">
+        <label>FCF de base <span class="v" id="dcf-fcf-val">${(dcfData.fcf_base/1e9).toFixed(2)} Md${cur}</span></label>
+        <input type="range" id="dcf-fcf" min="${(dcfData.fcf_base*0.5/1e9).toFixed(2)}" max="${(dcfData.fcf_base*1.5/1e9).toFixed(2)}" step="${(dcfData.fcf_base/1e11).toFixed(3)}" value="${(dcfData.fcf_base/1e9).toFixed(2)}">
+      </div>
+      <button class="dcf-reset" onclick="resetDCF()">↺ Réinitialiser</button>
+
+      <div style="margin-top:10px;font-size:11px;color:var(--muted);line-height:1.5">
+        Hypothèses initiales : FCF base ${(dcfData.fcf_base/1e9).toFixed(2)} Md${cur},
+        ${dcfData.shares_outstanding ? `${(dcfData.shares_outstanding/1e9).toFixed(2)} Md actions, ` : ''}
+        dette nette ${(dcfData.net_debt/1e9).toFixed(2)} Md${cur}.
+        Le DCF projette les FCF sur 5 ans, applique une valeur terminale (modèle de Gordon),
+        actualise au WACC, soustrait la dette nette puis divise par le nombre d'actions.
+      </div>
+    </div>` : `<div style="color:var(--muted);font-size:13px;padding:10px">DCF non calculable (FCF négatif ou données manquantes)</div>`;
 
   document.getElementById("detail").innerHTML = `
     <div class="detail-header">
       <div>
         <div class="ticker-big">${r.flag || ''} ${r.ticker}</div>
         <div class="sector-tag">${r.sector || ""} · ${r.industry || ""}</div>
-        <div style="margin-top:6px">${tl.emoji} <span class="qscore ${tl.cls}">${r.total_score.toFixed(1)}</span> <strong>${tl.text}</strong></div>
+        <div style="margin-top:6px">${tl.emoji} <span class="qscore ${tl.cls}">${r.score.toFixed(0)}</span> <strong>${tl.text}</strong>${r.is_premium_quality ? ' · 💎 Profil qualité' : ''}</div>
       </div>
       <div>
-        <div class="price-big">$${r.price ? r.price.toFixed(2) : '—'}</div>
+        <div class="price-big">${cur}${r.price ? r.price.toFixed(2) : '—'}</div>
       </div>
     </div>
 
-    <div class="verdict-banner ${vl.cls}">${vl.text}${v.margin_of_safety !== null ? ` (${v.margin_of_safety >= 0 ? '+' : ''}${(v.margin_of_safety*100).toFixed(0)}%)` : ''}</div>
+    ${summaryStrip}
 
-    <div class="section-label">Valeur intrinsèque estimée</div>
+    <div class="section-label">Évaluation des 8 indicateurs (touchez pour détails)</div>
+    ${indicatorsHtml}
+
+    <div class="section-label">Verdict valorisation</div>
+    ${valuationBanner}
+
+    <div class="section-label">Méthodes de valorisation comparées</div>
     <div class="valuation-grid">
-      <div class="valuation-box highlight"><div class="k">Moyenne</div><div class="v">$${v.average ? v.average.toFixed(2) : '—'}</div></div>
-      <div class="valuation-box"><div class="k">DCF</div><div class="v">$${v.dcf ? v.dcf.toFixed(2) : '—'}</div></div>
-      <div class="valuation-box"><div class="k">PER Lynch</div><div class="v">$${v.peg_lynch ? v.peg_lynch.toFixed(2) : '—'}</div></div>
-      <div class="valuation-box"><div class="k">Graham</div><div class="v">$${v.graham ? v.graham.toFixed(2) : '—'}</div></div>
+      <div class="valuation-box highlight"><div class="k">Moyenne</div><div class="v">${cur}${v.average ? v.average.toFixed(2) : '—'}</div></div>
+      <div class="valuation-box"><div class="k">DCF</div><div class="v">${cur}${v.dcf ? v.dcf.toFixed(2) : '—'}</div></div>
+      <div class="valuation-box"><div class="k">PER Lynch</div><div class="v">${cur}${v.peg_lynch ? v.peg_lynch.toFixed(2) : '—'}</div></div>
+      <div class="valuation-box"><div class="k">Graham</div><div class="v">${cur}${v.graham ? v.graham.toFixed(2) : '—'}</div></div>
     </div>
 
-    <div class="section-label">Score qualité (détail)</div>
-    ${scoreBar("MOAT", r.sub_scores.moat || 0, 25)}
-    ${scoreBar("Rentabilité", r.sub_scores.profitability || 0, 20)}
-    ${scoreBar("Santé fin.", r.sub_scores.financial_health || 0, 20)}
-    ${scoreBar("Stabilité", r.sub_scores.stability || 0, 15)}
-    ${scoreBar("Croissance", r.sub_scores.growth || 0, 10)}
-    ${scoreBar("Marge sécu.", Math.max(0, r.mos_score || 0), 10)}
-
-    <div class="section-label">Métriques clés</div>
-    <div class="metrics-grid">
-      ${metricCard("ROE", m.roe, formatPct, {good: 0.15, bad: 0.05})}
-      ${metricCard("ROIC", m.roic, formatPct, {good: 0.15, bad: 0.05})}
-      ${metricCard("Marge brute", m.gross_margin, formatPct, {good: 0.40, bad: 0.20})}
-      ${metricCard("Marge op.", m.operating_margin, formatPct, {good: 0.20, bad: 0.05})}
-      ${metricCard("Marge nette", m.net_margin, formatPct, {good: 0.15, bad: 0.05})}
-      ${metricCard("PER", m.pe_ratio, v => formatNum(v, 1), {good: -25, bad: 35})}
-      ${metricCard("PER Fwd", m.forward_pe, v => formatNum(v, 1))}
-      ${metricCard("PEG", m.peg_ratio, v => formatNum(v, 2))}
-      ${metricCard("P/B", m.price_to_book, v => formatNum(v, 2))}
-      ${metricCard("Dette/Eq", m.debt_to_equity, v => formatNum(v > 10 ? v / 100 : v, 2))}
-      ${metricCard("Div yield", m.dividend_yield, formatPct)}
-    </div>
+    ${dcfHtml}
   `;
+
+  // Attacher les listeners DCF interactif
+  if (dcfData) {
+    setupDCF(r);
+  }
 }
+
+// --- DCF interactif ---
+function setupDCF(r) {
+  const dcfData = r.valuation.dcf_data;
+  const cur = r.currency === "EUR" ? "€" : (r.currency === "GBP" ? "£" : "$");
+  const initialValues = {
+    g5y: dcfData.growth_5y * 100,
+    wacc: dcfData.wacc * 100,
+    tg: dcfData.terminal_growth * 100,
+    fcf: dcfData.fcf_base / 1e9,
+  };
+
+  function recompute() {
+    const g5y = parseFloat(document.getElementById("dcf-g5y").value) / 100;
+    const wacc = parseFloat(document.getElementById("dcf-wacc").value) / 100;
+    const tg = parseFloat(document.getElementById("dcf-tg").value) / 100;
+    const fcfBase = parseFloat(document.getElementById("dcf-fcf").value) * 1e9;
+
+    document.getElementById("dcf-g5y-val").textContent = (g5y * 100).toFixed(1) + "%";
+    document.getElementById("dcf-wacc-val").textContent = (wacc * 100).toFixed(1) + "%";
+    document.getElementById("dcf-tg-val").textContent = (tg * 100).toFixed(1) + "%";
+    document.getElementById("dcf-fcf-val").textContent = (fcfBase / 1e9).toFixed(2) + " Md" + cur;
+
+    if (wacc <= tg) {
+      document.getElementById("dcf-ival").textContent = "—";
+      document.getElementById("dcf-mos").textContent = "WACC ≤ croissance terminale";
+      return;
+    }
+
+    // Projection FCF 5 ans
+    const fcfProj = [];
+    for (let y = 1; y <= 5; y++) fcfProj.push(fcfBase * Math.pow(1 + g5y, y));
+    let pvFcf = 0;
+    for (let i = 0; i < 5; i++) pvFcf += fcfProj[i] / Math.pow(1 + wacc, i + 1);
+
+    // Valeur terminale (Gordon)
+    const terminalFcf = fcfProj[4] * (1 + tg);
+    const terminalValue = terminalFcf / (wacc - tg);
+    const pvTerminal = terminalValue / Math.pow(1 + wacc, 5);
+
+    const ev = pvFcf + pvTerminal;
+    const equity = ev - dcfData.net_debt;
+    const intrinsic = equity / dcfData.shares_outstanding;
+
+    document.getElementById("dcf-ival").textContent = cur + (intrinsic > 0 ? intrinsic.toFixed(2) : "—");
+
+    // Marge de sécurité
+    if (r.price && r.price > 0 && intrinsic > 0) {
+      const mos = (intrinsic - r.price) / r.price;
+      const mosEl = document.getElementById("dcf-mos");
+      mosEl.textContent = `MoS ${mos >= 0 ? '+' : ''}${(mos * 100).toFixed(0)}%`;
+      mosEl.className = "dcf-mos " + (mos >= 0 ? "pos" : "neg");
+    }
+  }
+
+  ["dcf-g5y", "dcf-wacc", "dcf-tg", "dcf-fcf"].forEach(id => {
+    document.getElementById(id).addEventListener("input", recompute);
+  });
+
+  window.resetDCF = function() {
+    document.getElementById("dcf-g5y").value = initialValues.g5y;
+    document.getElementById("dcf-wacc").value = initialValues.wacc;
+    document.getElementById("dcf-tg").value = initialValues.tg;
+    document.getElementById("dcf-fcf").value = initialValues.fcf;
+    recompute();
+  };
+}
+
+// Toggle expand des indicateurs
+window.toggleIndicator = function(idx) {
+  const card = document.querySelector(`.indicator-card[data-idx="${idx}"]`);
+  if (card) card.classList.toggle("expanded");
+};
 
 // =========================================================================
 // DETAIL TECHNIQUE (identique à avant)
