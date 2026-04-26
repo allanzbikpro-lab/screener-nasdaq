@@ -53,6 +53,40 @@ def safe_div(a, b, default=None):
         return default
 
 
+def to_float(v, default=None):
+    """Convertit en float de façon robuste. Gère les strings, None, NaN, valeurs étranges."""
+    if v is None:
+        return default
+    if isinstance(v, (int, float)):
+        if isinstance(v, float) and (np.isnan(v) or np.isinf(v)):
+            return default
+        return float(v)
+    # String ou autre : tenter conversion
+    try:
+        s = str(v).strip().replace(',', '.').replace('%', '')
+        if s == '' or s.lower() in ('nan', 'none', 'null', 'n/a', '-'):
+            return default
+        return float(s)
+    except (ValueError, TypeError):
+        return default
+
+
+def normalize_fundamentals(f):
+    """Convertit en float toutes les clés numériques susceptibles de contenir des strings."""
+    numeric_keys = [
+        "market_cap", "price", "shares_outstanding", "beta",
+        "roe", "roa", "gross_margin", "operating_margin", "net_margin",
+        "debt_to_equity", "current_ratio", "total_debt", "total_cash", "ebitda",
+        "free_cashflow", "pe_ratio", "forward_pe", "price_to_book",
+        "book_value", "eps_ttm", "eps_forward",
+        "dividend_yield", "payout_ratio",
+    ]
+    for k in numeric_keys:
+        if k in f:
+            f[k] = to_float(f[k])
+    return f
+
+
 def safe_get(d, *keys, default=None):
     for k in keys:
         v = d.get(k)
@@ -230,11 +264,14 @@ def extract_fundamentals(ticker):
         # Détection contexte "Qualité/Luxe" pour PER
         # Critères : marge nette > 15% ET ROE > 20% ET ROIC moyen > 15%
         is_premium = (
-            (f.get("net_margin") or 0) > 0.15 and
-            (f.get("roe") or 0) > 0.20 and
+            (to_float(f.get("net_margin")) or 0) > 0.15 and
+            (to_float(f.get("roe")) or 0) > 0.20 and
             (f.get("roic_avg_5y") or 0) > 0.15
         )
         f["is_premium_quality"] = is_premium
+
+        # Normaliser tous les types numériques (yfinance renvoie parfois des strings sur les marchés EU)
+        f = normalize_fundamentals(f)
 
         return f
     except Exception as e:
