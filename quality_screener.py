@@ -1,4 +1,4 @@
-"""
+""
 Screener Qualité v4 - Scoring strict sur 8 indicateurs fondamentaux
 ====================================================================
 Approche stricte basée sur les seuils Buffett/Munger/value investing :
@@ -728,6 +728,16 @@ def main():
 
     results.sort(key=lambda x: x["score"], reverse=True)
 
+    output = {
+        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "type": "quality",
+        "version": "v4-strict",
+        "universe": args.universe,
+        "universe_label": universe["label"],
+        "count": len(results),
+        "results": results,
+    }
+    
     # Nettoyage JSON : remplacer NaN/Infinity (invalides en JSON standard) par null
     def clean_json(obj):
         if isinstance(obj, dict):
@@ -739,8 +749,9 @@ def main():
                 return None
         return obj
     output = clean_json(output)
+
     out_path = out_dir / out_name
-    out_path.write_text(json.dumps(output, indent=2, ensure_ascii=True, default=str, allow_nan=False))
+    out_path.write_text(json.dumps(output, indent=2, ensure_ascii=False, default=str))
 
     excellent = [r for r in results if r["tier"] == "EXCELLENTE"]
     print(f"\n  ⭐⭐⭐ Excellentes : {len(excellent):3}  {[r['ticker'] for r in excellent[:10]]}")
