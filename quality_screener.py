@@ -728,6 +728,18 @@ def main():
 
     results.sort(key=lambda x: x["score"], reverse=True)
 
+     # Nettoyage : remplacer NaN/Infinity par None pour JSON valide
+        def clean_json_values(obj):
+            if isinstance(obj, dict):
+                return {k: clean_json_values(v) for k, v in obj.items()}
+            if isinstance(obj, list):
+                return [clean_json_values(v) for v in obj]
+            if isinstance(obj, float):
+                if obj != obj or obj == float('inf') or obj == float('-inf'):
+                    return None
+            return obj
+        results = clean_json_values(results)
+    
     output = {
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "type": "quality",
@@ -738,7 +750,7 @@ def main():
         "results": results,
     }
     out_path = out_dir / out_name
-    out_path.write_text(json.dumps(output, indent=2, ensure_ascii=False, default=str))
+    out_path.write_text(json.dumps(output, indent=2, ensure_ascii=True, default=str, allow_nan=False))
 
     excellent = [r for r in results if r["tier"] == "EXCELLENTE"]
     print(f"\n  ⭐⭐⭐ Excellentes : {len(excellent):3}  {[r['ticker'] for r in excellent[:10]]}")
