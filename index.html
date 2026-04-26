@@ -429,23 +429,9 @@ const verdictLabel = {
 async function fetchJson(path) {
   try {
     const r = await fetch(`${path}?t=${Date.now()}`);
-    if (!r.ok) {
-      console.error(`Fetch ${path} failed: HTTP ${r.status}`);
-      return null;
-    }
-    const text = await r.text();
-    try {
-      return JSON.parse(text);
-    } catch (e) {
-      console.error(`JSON parse error for ${path}:`, e.message);
-      console.error('First 500 chars:', text.substring(0, 500));
-      alert(`Erreur dans ${path} : ${e.message}`);
-      return null;
-    }
-  } catch (e) {
-    console.error(`Network error for ${path}:`, e);
-    return null;
-  }
+    if (!r.ok) return null;
+    return await r.json();
+  } catch { return null; }
 }
 
 async function loadAll() {
