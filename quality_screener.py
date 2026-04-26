@@ -728,27 +728,17 @@ def main():
 
     results.sort(key=lambda x: x["score"], reverse=True)
 
-     # Nettoyage : remplacer NaN/Infinity par None pour JSON valide
-        def clean_json_values(obj):
-            if isinstance(obj, dict):
-                return {k: clean_json_values(v) for k, v in obj.items()}
-            if isinstance(obj, list):
-                return [clean_json_values(v) for v in obj]
-            if isinstance(obj, float):
-                if obj != obj or obj == float('inf') or obj == float('-inf'):
-                    return None
-            return obj
-        results = clean_json_values(results)
-    
-    output = {
-        "generated_at": datetime.now().isoformat(timespec="seconds"),
-        "type": "quality",
-        "version": "v4-strict",
-        "universe": args.universe,
-        "universe_label": universe["label"],
-        "count": len(results),
-        "results": results,
-    }
+    # Nettoyage JSON : remplacer NaN/Infinity (invalides en JSON standard) par null
+    def clean_json(obj):
+        if isinstance(obj, dict):
+            return {k: clean_json(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [clean_json(v) for v in obj]
+        if isinstance(obj, float):
+            if obj != obj or obj == float('inf') or obj == float('-inf'):
+                return None
+        return obj
+    output = clean_json(output)
     out_path = out_dir / out_name
     out_path.write_text(json.dumps(output, indent=2, ensure_ascii=True, default=str, allow_nan=False))
 
