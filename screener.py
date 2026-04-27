@@ -104,34 +104,43 @@ def candle_anatomy(df):
 
 
 def detect_patterns(df):
+    """
+    Détecte patterns sur les dernières bougies. Pour chaque pattern :
+    - signal (bullish/bearish/neutral), strength (0-100)
+    - candle_indices : indices relatifs à df indiquant les bougies impliquées
+    """
     if len(df) < 3:
         return {}
     d = candle_anatomy(df)
     last, prev = d.iloc[-1], d.iloc[-2]
+    n = len(d)
+    last_idx = n - 1
+    prev_idx = n - 2
     p = {}
 
     if last["lower_ratio"] >= 0.6 and last["upper_ratio"] <= 0.15 and last["body_ratio"] <= 0.3:
-        p["hammer"] = {"signal": "bullish", "strength": 70}
+        p["hammer"] = {"signal": "bullish", "strength": 70, "candle_indices": [last_idx]}
     if last["upper_ratio"] >= 0.6 and last["lower_ratio"] <= 0.15 and last["body_ratio"] <= 0.3:
-        p["shooting_star"] = {"signal": "bearish", "strength": 70}
+        p["shooting_star"] = {"signal": "bearish", "strength": 70, "candle_indices": [last_idx]}
     if last["body_ratio"] <= 0.1 and last["range"] > 0:
-        p["doji"] = {"signal": "neutral", "strength": 40}
+        p["doji"] = {"signal": "neutral", "strength": 40, "candle_indices": [last_idx]}
 
     if (not prev["bullish"] and last["bullish"] and last["Open"] < prev["Close"]
             and last["Close"] > prev["Open"] and last["body"] > prev["body"]):
-        p["bullish_engulfing"] = {"signal": "bullish", "strength": 80}
+        p["bullish_engulfing"] = {"signal": "bullish", "strength": 80, "candle_indices": [prev_idx, last_idx]}
     if (prev["bullish"] and not last["bullish"] and last["Open"] > prev["Close"]
             and last["Close"] < prev["Open"] and last["body"] > prev["body"]):
-        p["bearish_engulfing"] = {"signal": "bearish", "strength": 80}
+        p["bearish_engulfing"] = {"signal": "bearish", "strength": 80, "candle_indices": [prev_idx, last_idx]}
 
     if len(d) >= 3:
         p2 = d.iloc[-3]
+        p2_idx = n - 3
         if (not p2["bullish"] and p2["body_ratio"] > 0.5 and prev["body_ratio"] < 0.3
                 and last["bullish"] and last["Close"] > (p2["Open"] + p2["Close"]) / 2):
-            p["morning_star"] = {"signal": "bullish", "strength": 85}
+            p["morning_star"] = {"signal": "bullish", "strength": 85, "candle_indices": [p2_idx, prev_idx, last_idx]}
         if (p2["bullish"] and p2["body_ratio"] > 0.5 and prev["body_ratio"] < 0.3
                 and not last["bullish"] and last["Close"] < (p2["Open"] + p2["Close"]) / 2):
-            p["evening_star"] = {"signal": "bearish", "strength": 85}
+            p["evening_star"] = {"signal": "bearish", "strength": 85, "candle_indices": [p2_idx, prev_idx, last_idx]}
     return p
 
 
@@ -140,6 +149,7 @@ def detect_divergence(price, indicator, lookback=20):
         return None
     p = price.iloc[-lookback:]
     i = indicator.iloc[-lookback:]
+    n_total = len(price)
     recent_high_idx = price.iloc[-5:].idxmax()
     recent_low_idx = price.iloc[-5:].idxmin()
 
@@ -148,14 +158,33 @@ def detect_divergence(price, indicator, lookback=20):
             ph = p.iloc[:-5].max()
             phi = p.iloc[:-5].idxmax()
             if p.iloc[-1] > ph and i.iloc[-1] < indicator.loc[phi]:
-                return "bearish"
+                # Positions absolues des 2 sommets
+                prev_peak_pos = price.index.get_loc(phi)
+                last_peak_pos = n_total - 1
+                return {
+                    "type": "bearish",
+                    "candle_indices": [prev_peak_pos, last_peak_pos],
+                    "prev_value": float(ph),
+                    "last_value": float(p.iloc[-1]),
+                    "prev_indicator": float(indicator.loc[phi]),
+                    "last_indicator": float(i.iloc[-1]),
+                }
 
     if recent_low_idx == price.iloc[-5:].index[-1] and p.iloc[-1] <= p.min() * 1.02:
         if len(p) > 5:
             pl = p.iloc[:-5].min()
             pli = p.iloc[:-5].idxmin()
             if p.iloc[-1] < pl and i.iloc[-1] > indicator.loc[pli]:
-                return "bullish"
+                prev_low_pos = price.index.get_loc(pli)
+                last_low_pos = n_total - 1
+                return {
+                    "type": "bullish",
+                    "candle_indices": [prev_low_pos, last_low_pos],
+                    "prev_value": float(pl),
+                    "last_value": float(p.iloc[-1]),
+                    "prev_indicator": float(indicator.loc[pli]),
+                    "last_indicator": float(i.iloc[-1]),
+                }
     return None
 
 
@@ -188,65 +217,177 @@ def analyze_ticker(ticker, config):
         last, prev = df.iloc[-1], df.iloc[-2]
         signals, score = [], 0.0
 
-        # Patterns
-        patterns = detect_patterns(df.tail(10))
+        # Nombre de bougies à exporter pour le graphique
+        chart_size = min(60, len(df))
+        chart_offset = len(df) - chart_size  # bougies à ignorer en début de df
+
+        def to_chart_idx(absolute_idx):
+            """Convertit un index absolu en index relatif au chart exporté."""
+            rel = absolute_idx - chart_offset
+            return rel if 0 <= rel < chart_size else None
+
+        # 1. PATTERNS DE CHANDELIERS
+        # On scrute les 10 dernières bougies pour les patterns
+        df_recent = df.tail(10).reset_index(drop=True)
+        # offset entre df complet et df_recent
+        recent_offset = len(df) - len(df_recent)
+        patterns = detect_patterns(df_recent)
         ps = 0
         for n, pt in patterns.items():
+            # Convertir indices df_recent → indices df complet → indices chart
+            chart_indices = []
+            for ridx in pt.get("candle_indices", []):
+                abs_idx = recent_offset + ridx
+                chart_idx = to_chart_idx(abs_idx)
+                if chart_idx is not None:
+                    chart_indices.append(chart_idx)
+
             if pt["signal"] == "bullish":
                 ps += pt["strength"] * 0.25
-                signals.append({"type": "pattern", "name": n, "dir": "bull", "weight": pt["strength"]})
+                signals.append({
+                    "type": "pattern", "name": n, "dir": "bull",
+                    "weight": pt["strength"],
+                    "chart_indices": chart_indices,
+                })
             elif pt["signal"] == "bearish":
                 ps -= pt["strength"] * 0.25
-                signals.append({"type": "pattern", "name": n, "dir": "bear", "weight": pt["strength"]})
+                signals.append({
+                    "type": "pattern", "name": n, "dir": "bear",
+                    "weight": pt["strength"],
+                    "chart_indices": chart_indices,
+                })
         ps = max(-20, min(20, ps))
 
-        # Volume + breakout
+        # 2. VOLUME + BREAKOUT (résistance/support sur 20 dernières bougies hors la dernière)
         vs = 0
         vr = float(last["vol_ratio"]) if pd.notna(last["vol_ratio"]) else 1.0
-        rh20 = high.iloc[-21:-1].max()
-        rl20 = low.iloc[-21:-1].min()
+        rh20 = float(high.iloc[-21:-1].max())
+        rl20 = float(low.iloc[-21:-1].min())
+        last_idx_chart = chart_size - 1
+
         if vr > 1.5:
             if last["Close"] > rh20:
-                vs = 25; signals.append({"type": "breakout", "name": "breakout_haussier_volume", "dir": "bull", "weight": 90})
+                vs = 25
+                signals.append({
+                    "type": "breakout", "name": "breakout_haussier_volume",
+                    "dir": "bull", "weight": 90,
+                    "chart_indices": [last_idx_chart],
+                    "level": rh20,  # ligne horizontale à tracer
+                    "level_label": "Résistance 20j",
+                    "vol_ratio": round(vr, 2),
+                })
             elif last["Close"] < rl20:
-                vs = -25; signals.append({"type": "breakout", "name": "breakout_baissier_volume", "dir": "bear", "weight": 90})
+                vs = -25
+                signals.append({
+                    "type": "breakout", "name": "breakout_baissier_volume",
+                    "dir": "bear", "weight": 90,
+                    "chart_indices": [last_idx_chart],
+                    "level": rl20,
+                    "level_label": "Support 20j",
+                    "vol_ratio": round(vr, 2),
+                })
             elif last["Close"] > last["Open"]:
-                vs = 10; signals.append({"type": "volume", "name": "volume_achat_anormal", "dir": "bull", "weight": 60})
+                vs = 10
+                signals.append({
+                    "type": "volume", "name": "volume_achat_anormal",
+                    "dir": "bull", "weight": 60,
+                    "chart_indices": [last_idx_chart],
+                    "vol_ratio": round(vr, 2),
+                })
             else:
-                vs = -10; signals.append({"type": "volume", "name": "volume_vente_anormal", "dir": "bear", "weight": 60})
+                vs = -10
+                signals.append({
+                    "type": "volume", "name": "volume_vente_anormal",
+                    "dir": "bear", "weight": 60,
+                    "chart_indices": [last_idx_chart],
+                    "vol_ratio": round(vr, 2),
+                })
 
-        # Divergences
+        # 3. DIVERGENCES RSI
         ds = 0
         dv = detect_divergence(close, df["rsi"], 20)
-        if dv == "bullish":
-            ds = 20; signals.append({"type": "divergence", "name": "divergence_haussiere_rsi", "dir": "bull", "weight": 75})
-        elif dv == "bearish":
-            ds = -20; signals.append({"type": "divergence", "name": "divergence_baissiere_rsi", "dir": "bear", "weight": 75})
+        if dv:
+            chart_indices = [to_chart_idx(i) for i in dv["candle_indices"]]
+            chart_indices = [i for i in chart_indices if i is not None]
+            if dv["type"] == "bullish":
+                ds = 20
+                signals.append({
+                    "type": "divergence", "name": "divergence_haussiere_rsi",
+                    "dir": "bull", "weight": 75,
+                    "chart_indices": chart_indices,
+                    "div_prev_price": dv["prev_value"],
+                    "div_last_price": dv["last_value"],
+                    "div_prev_rsi": dv["prev_indicator"],
+                    "div_last_rsi": dv["last_indicator"],
+                })
+            else:
+                ds = -20
+                signals.append({
+                    "type": "divergence", "name": "divergence_baissiere_rsi",
+                    "dir": "bear", "weight": 75,
+                    "chart_indices": chart_indices,
+                    "div_prev_price": dv["prev_value"],
+                    "div_last_price": dv["last_value"],
+                    "div_prev_rsi": dv["prev_indicator"],
+                    "div_last_rsi": dv["last_indicator"],
+                })
 
-        # Croisements MM
+        # 4. CROISEMENTS MM
         ms = 0
         cu = (prev["ema_fast"] <= prev["ema_slow"]) and (last["ema_fast"] > last["ema_slow"])
         cd = (prev["ema_fast"] >= prev["ema_slow"]) and (last["ema_fast"] < last["ema_slow"])
         if cu:
-            ms = 15; signals.append({"type": "ma_cross", "name": "golden_cross_court", "dir": "bull", "weight": 70})
+            ms = 15
+            signals.append({
+                "type": "ma_cross", "name": "golden_cross_court",
+                "dir": "bull", "weight": 70,
+                "chart_indices": [last_idx_chart],
+            })
         elif cd:
-            ms = -15; signals.append({"type": "ma_cross", "name": "death_cross_court", "dir": "bear", "weight": 70})
+            ms = -15
+            signals.append({
+                "type": "ma_cross", "name": "death_cross_court",
+                "dir": "bear", "weight": 70,
+                "chart_indices": [last_idx_chart],
+            })
         elif last["Close"] > last["ema_trend"]:
             ms = 5
         else:
             ms = -5
 
-        # Survente/surachat
+        # 5. SURVENTE / SURACHAT
         rv = float(last["rsi"]) if pd.notna(last["rsi"]) else 50
         os_ = 0
         if rv < 30:
-            os_ = 20; signals.append({"type": "oversold", "name": f"rsi_survente_{rv:.0f}", "dir": "bull", "weight": 65})
+            os_ = 20
+            signals.append({
+                "type": "oversold", "name": f"rsi_survente_{rv:.0f}",
+                "dir": "bull", "weight": 65,
+                "chart_indices": [last_idx_chart],
+                "rsi_value": round(rv, 1),
+            })
         elif rv > 70:
-            os_ = -20; signals.append({"type": "overbought", "name": f"rsi_surachat_{rv:.0f}", "dir": "bear", "weight": 65})
+            os_ = -20
+            signals.append({
+                "type": "overbought", "name": f"rsi_surachat_{rv:.0f}",
+                "dir": "bear", "weight": 65,
+                "chart_indices": [last_idx_chart],
+                "rsi_value": round(rv, 1),
+            })
         if last["Close"] < last["bb_lower"]:
-            os_ += 5; signals.append({"type": "bollinger", "name": "sous_bb_inf", "dir": "bull", "weight": 50})
+            os_ += 5
+            signals.append({
+                "type": "bollinger", "name": "sous_bb_inf",
+                "dir": "bull", "weight": 50,
+                "chart_indices": [last_idx_chart],
+            })
         elif last["Close"] > last["bb_upper"]:
-            os_ -= 5; signals.append({"type": "bollinger", "name": "au_dessus_bb_sup", "dir": "bear", "weight": 50})
+            os_ -= 5
+            signals.append({
+                "type": "bollinger", "name": "au_dessus_bb_sup",
+                "dir": "bear", "weight": 50,
+                "chart_indices": [last_idx_chart],
+            })
 
         score = max(-100, min(100, ps + vs + ds + ms + os_))
 
@@ -261,8 +402,14 @@ def analyze_ticker(ticker, config):
         else:
             zone = "NEUTRE"
 
-        chart_df = df.tail(60).reset_index()
+        chart_df = df.tail(chart_size).reset_index()
         date_col = "Datetime" if "Datetime" in chart_df.columns else "Date"
+
+        def safe_round(v, n=2):
+            if v is None or (isinstance(v, float) and (np.isnan(v) or np.isinf(v))):
+                return None
+            return round(float(v), n)
+
         history = [{
             "date": str(row[date_col])[:16],
             "open": round(float(row["Open"]), 2),
@@ -270,6 +417,17 @@ def analyze_ticker(ticker, config):
             "low": round(float(row["Low"]), 2),
             "close": round(float(row["Close"]), 2),
             "volume": int(row["Volume"]),
+            "ema_fast": safe_round(row.get("ema_fast")),
+            "ema_slow": safe_round(row.get("ema_slow")),
+            "ema_trend": safe_round(row.get("ema_trend")),
+            "rsi": safe_round(row.get("rsi"), 1),
+            "macd": safe_round(row.get("macd"), 3),
+            "macd_signal": safe_round(row.get("macd_signal"), 3),
+            "macd_hist": safe_round(row.get("macd_hist"), 3),
+            "bb_upper": safe_round(row.get("bb_upper")),
+            "bb_mid": safe_round(row.get("bb_mid")),
+            "bb_lower": safe_round(row.get("bb_lower")),
+            "vol_ma": safe_round(row.get("vol_ma"), 0),
         } for _, row in chart_df.iterrows()]
 
         return {

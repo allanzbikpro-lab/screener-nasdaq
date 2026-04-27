@@ -7,9 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Screener Nasdaq 100</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.2.1/dist/chartjs-chart-financial.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 <style>
   :root {
     --bg: #0b0f17; --panel: #131a26; --panel-light: #1a2332;
@@ -242,6 +240,65 @@
 
   #chart-container { height: 280px; margin-top: 14px; }
   .placeholder { color: var(--muted); text-align: center; padding: 40px 20px; font-size: 14px; }
+
+  /* Nouveau système de graphiques avancés */
+  .chart-stack {
+    margin-top: 10px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .chart-block {
+    background: var(--panel-light); border: 1px solid var(--border);
+    border-radius: 8px; overflow: hidden;
+  }
+  .chart-block-header {
+    padding: 8px 12px; font-size: 11px; font-weight: 600;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px;
+    cursor: pointer; user-select: none;
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--panel);
+  }
+  .chart-block-header .arrow { font-size: 10px; transition: transform 0.2s; }
+  .chart-block.expanded .chart-block-header .arrow { transform: rotate(90deg); }
+  .chart-block-body {
+    height: 0; overflow: hidden; transition: height 0.25s;
+  }
+  .chart-block.expanded .chart-block-body { height: 140px; }
+  .chart-block.main .chart-block-body { height: 320px; }
+  .chart-block.main .chart-block-header { background: var(--panel-light); cursor: default; }
+
+  /* Signal chips below chart */
+  .signal-chip-row {
+    display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 0;
+  }
+  .signal-chip-clickable {
+    padding: 6px 12px; border-radius: 16px; font-size: 11px; font-weight: 500;
+    cursor: pointer; user-select: none;
+    border: 1px solid var(--border); background: var(--panel-light);
+    transition: all 0.15s;
+  }
+  .signal-chip-clickable.bull {
+    border-color: var(--green); color: var(--green);
+    background: rgba(34, 197, 94, 0.1);
+  }
+  .signal-chip-clickable.bear {
+    border-color: var(--red); color: var(--red);
+    background: rgba(239, 68, 68, 0.1);
+  }
+  .signal-chip-clickable:active { transform: scale(0.96); }
+  .signal-chip-clickable.active {
+    box-shadow: 0 0 0 2px var(--blue);
+  }
+
+  /* Tooltip d'explication signal */
+  .signal-explainer {
+    background: var(--panel-light); border-left: 3px solid var(--blue);
+    padding: 10px 14px; border-radius: 6px; margin-top: 8px;
+    font-size: 12px; line-height: 1.55;
+  }
+  .signal-explainer .title {
+    font-weight: 600; color: var(--text); margin-bottom: 4px; font-size: 13px;
+  }
+  .signal-explainer .desc { color: var(--muted); }
   .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
   .empty-state h2 { font-size: 18px; margin-bottom: 10px; color: var(--text); }
   .empty-state code { background: var(--panel); padding: 2px 8px; border-radius: 4px; color: var(--yellow); }
@@ -1186,19 +1243,113 @@ window.toggleIndicator = function(idx) {
 };
 
 // =========================================================================
-// DETAIL TECHNIQUE (identique à avant)
+// DETAIL TECHNIQUE - avec graphique annoté lightweight-charts
 // =========================================================================
+
+// Dictionnaire des explications de signaux
+const SIGNAL_EXPLAINERS = {
+  hammer: {
+    title: "🔨 Marteau (Hammer)",
+    desc: "Bougie avec petit corps en haut et longue mèche basse (≥60% du range). Signale un rejet vendeur fort : les acheteurs ont repris le contrôle après une chute. Plus fiable en zone de support."
+  },
+  shooting_star: {
+    title: "⭐ Étoile filante",
+    desc: "Bougie avec petit corps en bas et longue mèche haute (≥60% du range). Signale un rejet acheteur : les vendeurs ont repris le contrôle après une montée. Plus fiable en zone de résistance."
+  },
+  doji: {
+    title: "✚ Doji (indécision)",
+    desc: "Le cours d'ouverture et de clôture sont quasi identiques (corps ≤10% du range). Signale une indécision du marché, souvent annonciatrice d'un retournement."
+  },
+  bullish_engulfing: {
+    title: "🟢 Engulfing haussier",
+    desc: "Une grande bougie verte « avale » totalement la bougie rouge précédente (ouvre plus bas, clôture plus haut, corps plus grand). Renversement haussier puissant."
+  },
+  bearish_engulfing: {
+    title: "🔴 Engulfing baissier",
+    desc: "Une grande bougie rouge « avale » totalement la bougie verte précédente. Renversement baissier puissant, surtout après une hausse prolongée."
+  },
+  morning_star: {
+    title: "🌅 Étoile du matin",
+    desc: "Pattern à 3 bougies : 1) grosse bougie baissière, 2) petite bougie d'indécision, 3) forte bougie haussière qui dépasse la moitié de la 1ère. Renversement de tendance haussier."
+  },
+  evening_star: {
+    title: "🌆 Étoile du soir",
+    desc: "Pattern à 3 bougies : 1) grosse bougie haussière, 2) petite bougie d'indécision, 3) forte bougie baissière qui descend sous la moitié de la 1ère. Renversement baissier."
+  },
+  breakout_haussier_volume: {
+    title: "🚀 Cassure haussière sur volume",
+    desc: "Le prix franchit la résistance des 20 dernières séances avec un volume >1,5× la moyenne. Confirmation forte d'un nouveau cycle haussier."
+  },
+  breakout_baissier_volume: {
+    title: "📉 Cassure baissière sur volume",
+    desc: "Le prix passe sous le support des 20 dernières séances avec un volume >1,5× la moyenne. Confirme une rupture de tendance baissière."
+  },
+  volume_achat_anormal: {
+    title: "📊 Volume d'achat anormal",
+    desc: "Le volume du jour dépasse 1,5× la moyenne 20j sur une bougie verte (clôture > ouverture), sans cassure de niveau clé. Intérêt acheteur inhabituel."
+  },
+  volume_vente_anormal: {
+    title: "📊 Volume de vente anormal",
+    desc: "Volume >1,5× la moyenne sur une bougie rouge. Pression vendeuse inhabituelle, sans cassure de support."
+  },
+  divergence_haussiere_rsi: {
+    title: "↗️ Divergence RSI haussière",
+    desc: "Le prix fait un nouveau bas mais le RSI fait un bas plus haut. Le momentum baissier s'épuise — souvent précurseur d'un rebond."
+  },
+  divergence_baissiere_rsi: {
+    title: "↘️ Divergence RSI baissière",
+    desc: "Le prix fait un nouveau haut mais le RSI fait un haut plus bas. Le momentum haussier s'essouffle — souvent précurseur d'une correction."
+  },
+  golden_cross_court: {
+    title: "✨ Golden Cross",
+    desc: "L'EMA rapide vient de croiser à la hausse l'EMA lente. Signal classique de début de tendance haussière."
+  },
+  death_cross_court: {
+    title: "💀 Death Cross",
+    desc: "L'EMA rapide vient de croiser à la baisse l'EMA lente. Signal classique de début de tendance baissière."
+  },
+  sous_bb_inf: {
+    title: "📍 Sous bande Bollinger inférieure",
+    desc: "Le prix clôture en-dessous de la bande de Bollinger inférieure (μ - 2σ). Mouvement statistiquement extrême, possible rebond."
+  },
+  au_dessus_bb_sup: {
+    title: "📍 Au-dessus bande Bollinger supérieure",
+    desc: "Le prix clôture au-dessus de la bande de Bollinger supérieure (μ + 2σ). Mouvement extrême, possible correction."
+  },
+};
+
+// Pour les noms commençant par rsi_survente_ ou rsi_surachat_
+function getSignalExplainer(name) {
+  if (name.startsWith("rsi_survente_")) {
+    return {
+      title: "🔻 RSI en zone de survente",
+      desc: "Le RSI est descendu sous 30, indiquant que l'action est techniquement « survendue ». Probabilité accrue de rebond technique à court terme."
+    };
+  }
+  if (name.startsWith("rsi_surachat_")) {
+    return {
+      title: "🔺 RSI en zone de surachat",
+      desc: "Le RSI dépasse 70, indiquant que l'action est techniquement « surachetée ». Probabilité accrue de correction à court terme."
+    };
+  }
+  return SIGNAL_EXPLAINERS[name] || { title: name, desc: "Pas de description disponible." };
+}
+
+let activeChartCharts = []; // pour cleanup
+
 function renderTechnicalDetail(r) {
   if (!r) return;
   const zl = zoneLabel[r.zone];
   const scoreCls = r.score >= 40 ? "strong-pos" : r.score >= 20 ? "pos" :
                    r.score <= -40 ? "strong-neg" : r.score <= -20 ? "neg" : "neutral";
+
+  // Chips signaux cliquables
   const signalsHtml = r.signals.length === 0
     ? `<div style="color:var(--muted);font-size:13px">Aucun signal fort détecté</div>`
-    : r.signals.map(s => {
+    : r.signals.map((s, i) => {
         const cls = s.dir === "bull" ? "bull" : s.dir === "bear" ? "bear" : "";
         const icon = s.dir === "bull" ? "↑" : s.dir === "bear" ? "↓" : "•";
-        return `<span class="chip ${cls}">${icon} ${s.name.replaceAll('_', ' ')}</span>`;
+        return `<span class="signal-chip-clickable ${cls}" data-signal-idx="${i}">${icon} ${s.name.replaceAll('_', ' ')}</span>`;
       }).join("");
 
   document.getElementById("detail").innerHTML = `
@@ -1223,39 +1374,347 @@ function renderTechnicalDetail(r) {
       <div class="metric"><div class="k">Vol ×</div><div class="v">${r.volume_ratio.toFixed(1)}</div></div>
       <div class="metric"><div class="k">ATR</div><div class="v">${r.atr.toFixed(1)}</div></div>
     </div>
-    <div class="section-label">Signaux détectés</div>
-    <div class="signals-list">${signalsHtml}</div>
-    <div class="section-label">Graphique (60 bougies)</div>
-    <div id="chart-container"><canvas id="chart"></canvas></div>
+
+    <div class="section-label">Signaux détectés (touchez pour comprendre)</div>
+    <div class="signal-chip-row">${signalsHtml}</div>
+    <div id="signal-explainer-zone"></div>
+
+    <div class="section-label">Analyse graphique annotée</div>
+    <div class="chart-stack">
+      <div class="chart-block main expanded">
+        <div class="chart-block-header">
+          <span>📈 Prix + EMAs + Bollinger</span>
+        </div>
+        <div class="chart-block-body" id="chart-main"></div>
+      </div>
+      <div class="chart-block expanded" data-block="volume">
+        <div class="chart-block-header" onclick="toggleChartBlock('volume')">
+          <span>📊 Volume</span><span class="arrow">▶</span>
+        </div>
+        <div class="chart-block-body" id="chart-volume"></div>
+      </div>
+      <div class="chart-block" data-block="rsi">
+        <div class="chart-block-header" onclick="toggleChartBlock('rsi')">
+          <span>📐 RSI (14)</span><span class="arrow">▶</span>
+        </div>
+        <div class="chart-block-body" id="chart-rsi"></div>
+      </div>
+      <div class="chart-block" data-block="macd">
+        <div class="chart-block-header" onclick="toggleChartBlock('macd')">
+          <span>📉 MACD</span><span class="arrow">▶</span>
+        </div>
+        <div class="chart-block-body" id="chart-macd"></div>
+      </div>
+    </div>
   `;
-  renderChart(r);
+
+  // Render charts
+  renderAdvancedChart(r);
+
+  // Listeners signaux cliquables
+  document.querySelectorAll(".signal-chip-clickable").forEach(chip => {
+    chip.addEventListener("click", () => {
+      const idx = parseInt(chip.dataset.signalIdx);
+      const signal = r.signals[idx];
+      // Toggle active state
+      document.querySelectorAll(".signal-chip-clickable").forEach(c => c.classList.remove("active"));
+      chip.classList.add("active");
+      showSignalExplainer(signal, r);
+    });
+  });
+}
+
+window.toggleChartBlock = function(name) {
+  const block = document.querySelector(`.chart-block[data-block="${name}"]`);
+  if (!block) return;
+  block.classList.toggle("expanded");
+  // Recalculer la taille du graphique après animation
+  setTimeout(() => {
+    const chart = window["_chart_" + name];
+    if (chart) {
+      const el = document.getElementById("chart-" + name);
+      if (el && el.clientWidth > 0) {
+        chart.applyOptions({ width: el.clientWidth, height: el.clientHeight });
+      }
+    }
+  }, 300);
+};
+
+function showSignalExplainer(signal, r) {
+  const exp = getSignalExplainer(signal.name);
+  const zone = document.getElementById("signal-explainer-zone");
+  const cur = "$";
+
+  // Détails contextuels selon le type de signal
+  let context = "";
+  if (signal.type === "breakout" && signal.level) {
+    context = `<div style="margin-top:6px;color:var(--muted);font-size:11px">📍 Niveau franchi : <strong>${cur}${signal.level.toFixed(2)}</strong> (${signal.level_label}) · Volume ratio : ${signal.vol_ratio?.toFixed(2) || '?'}×</div>`;
+  } else if (signal.type === "divergence" && signal.div_prev_price) {
+    context = `<div style="margin-top:6px;color:var(--muted);font-size:11px">
+      Prix : ${cur}${signal.div_prev_price.toFixed(2)} → ${cur}${signal.div_last_price.toFixed(2)} ·
+      RSI : ${signal.div_prev_rsi.toFixed(0)} → ${signal.div_last_rsi.toFixed(0)}
+    </div>`;
+  } else if (signal.type === "volume" && signal.vol_ratio) {
+    context = `<div style="margin-top:6px;color:var(--muted);font-size:11px">Volume ratio : ${signal.vol_ratio.toFixed(2)}× la moyenne</div>`;
+  } else if ((signal.type === "oversold" || signal.type === "overbought") && signal.rsi_value) {
+    context = `<div style="margin-top:6px;color:var(--muted);font-size:11px">RSI actuel : <strong>${signal.rsi_value}</strong></div>`;
+  }
+
+  zone.innerHTML = `
+    <div class="signal-explainer">
+      <div class="title">${exp.title}</div>
+      <div class="desc">${exp.desc}</div>
+      ${context}
+      <div style="margin-top:8px;font-size:11px;color:var(--muted)">📌 Annotations visibles sur le graphique principal ci-dessous</div>
+    </div>`;
+
+  // Highlighter sur le graphique : centrer la vue sur les bougies du signal
+  if (signal.chart_indices && signal.chart_indices.length > 0 && window._chart_main && r.history) {
+    const idx = signal.chart_indices[0];
+    if (idx >= 0 && idx < r.history.length) {
+      const targetTime = new Date(r.history[idx].date).valueOf() / 1000;
+      const range = 10; // bougies de chaque côté
+      const fromIdx = Math.max(0, idx - range);
+      const toIdx = Math.min(r.history.length - 1, idx + range);
+      window._chart_main.timeScale().setVisibleRange({
+        from: new Date(r.history[fromIdx].date).valueOf() / 1000,
+        to: new Date(r.history[toIdx].date).valueOf() / 1000,
+      });
+    }
+  }
+}
+
+function renderAdvancedChart(r) {
+  // Cleanup previous charts
+  ["main", "volume", "rsi", "macd"].forEach(name => {
+    const k = "_chart_" + name;
+    if (window[k]) { try { window[k].remove(); } catch {} window[k] = null; }
+  });
+
+  if (!r.history || r.history.length === 0) return;
+
+  const commonOptions = {
+    layout: {
+      background: { type: 'solid', color: '#1a2332' },
+      textColor: '#8b97ad',
+      fontSize: 10,
+    },
+    grid: {
+      vertLines: { color: '#26334a' },
+      horzLines: { color: '#26334a' },
+    },
+    timeScale: {
+      borderColor: '#26334a',
+      timeVisible: true,
+      secondsVisible: false,
+    },
+    rightPriceScale: { borderColor: '#26334a' },
+    crosshair: { mode: 1 },
+    handleScroll: true,
+    handleScale: true,
+  };
+
+  // Helper pour convertir date string en timestamp seconds
+  const toTime = (dateStr) => Math.floor(new Date(dateStr).valueOf() / 1000);
+
+  // ==== GRAPHIQUE PRINCIPAL : Bougies + EMA + Bollinger ====
+  const mainEl = document.getElementById("chart-main");
+  if (mainEl) {
+    const chart = LightweightCharts.createChart(mainEl, {
+      ...commonOptions,
+      width: mainEl.clientWidth,
+      height: mainEl.clientHeight || 320,
+    });
+    window._chart_main = chart;
+
+    // Bougies
+    const candleSeries = chart.addCandlestickSeries({
+      upColor: '#22c55e', downColor: '#ef4444',
+      borderUpColor: '#22c55e', borderDownColor: '#ef4444',
+      wickUpColor: '#22c55e', wickDownColor: '#ef4444',
+    });
+    candleSeries.setData(r.history.map(b => ({
+      time: toTime(b.date),
+      open: b.open, high: b.high, low: b.low, close: b.close,
+    })));
+
+    // EMAs
+    if (r.history[0].ema_fast !== null) {
+      const emaFast = chart.addLineSeries({ color: '#3b82f6', lineWidth: 2, title: 'EMA rapide' });
+      emaFast.setData(r.history.filter(b => b.ema_fast !== null).map(b => ({ time: toTime(b.date), value: b.ema_fast })));
+    }
+    if (r.history[0].ema_slow !== null) {
+      const emaSlow = chart.addLineSeries({ color: '#a855f7', lineWidth: 2, title: 'EMA lente' });
+      emaSlow.setData(r.history.filter(b => b.ema_slow !== null).map(b => ({ time: toTime(b.date), value: b.ema_slow })));
+    }
+
+    // Bandes de Bollinger
+    if (r.history.some(b => b.bb_upper !== null)) {
+      const bbUpper = chart.addLineSeries({ color: 'rgba(234,179,8,0.6)', lineWidth: 1, lineStyle: 2, title: 'BB sup' });
+      const bbLower = chart.addLineSeries({ color: 'rgba(234,179,8,0.6)', lineWidth: 1, lineStyle: 2, title: 'BB inf' });
+      bbUpper.setData(r.history.filter(b => b.bb_upper !== null).map(b => ({ time: toTime(b.date), value: b.bb_upper })));
+      bbLower.setData(r.history.filter(b => b.bb_lower !== null).map(b => ({ time: toTime(b.date), value: b.bb_lower })));
+    }
+
+    // === ANNOTATIONS DES SIGNAUX ===
+    const markers = [];
+    const horizontalLines = [];
+
+    (r.signals || []).forEach(signal => {
+      const dir = signal.dir;
+      const color = dir === "bull" ? "#22c55e" : (dir === "bear" ? "#ef4444" : "#eab308");
+      const indices = signal.chart_indices || [];
+
+      // Marker sur chaque bougie impliquée
+      indices.forEach((idx, i) => {
+        if (idx < 0 || idx >= r.history.length) return;
+        const time = toTime(r.history[idx].date);
+        const isLast = i === indices.length - 1;
+        markers.push({
+          time: time,
+          position: dir === "bull" ? 'belowBar' : 'aboveBar',
+          color: color,
+          shape: dir === "bull" ? 'arrowUp' : (dir === "bear" ? 'arrowDown' : 'circle'),
+          text: isLast ? signal.name.replaceAll('_', ' ').slice(0, 20) : '',
+          size: signal.type === "breakout" ? 2 : 1,
+        });
+      });
+
+      // Ligne horizontale pour breakout
+      if (signal.type === "breakout" && signal.level) {
+        horizontalLines.push({
+          price: signal.level,
+          color: color,
+          lineWidth: 2,
+          lineStyle: 2,
+          axisLabelVisible: true,
+          title: signal.level_label || 'Niveau cassé',
+        });
+      }
+
+      // Trendline pour divergence (entre les 2 bougies clés sur le prix)
+      if (signal.type === "divergence" && indices.length === 2 && signal.div_prev_price !== undefined) {
+        const trendSeries = chart.addLineSeries({
+          color: color, lineWidth: 2, lineStyle: 0, lastValueVisible: false, priceLineVisible: false,
+        });
+        trendSeries.setData([
+          { time: toTime(r.history[indices[0]].date), value: signal.div_prev_price },
+          { time: toTime(r.history[indices[1]].date), value: signal.div_last_price },
+        ]);
+      }
+    });
+
+    if (markers.length > 0) {
+      // Trier par time car lightweight-charts l'exige
+      markers.sort((a, b) => a.time - b.time);
+      candleSeries.setMarkers(markers);
+    }
+    horizontalLines.forEach(line => {
+      candleSeries.createPriceLine(line);
+    });
+
+    chart.timeScale().fitContent();
+  }
+
+  // ==== VOLUME ====
+  const volEl = document.getElementById("chart-volume");
+  if (volEl) {
+    const chart = LightweightCharts.createChart(volEl, {
+      ...commonOptions,
+      width: volEl.clientWidth,
+      height: volEl.clientHeight || 140,
+    });
+    window._chart_volume = chart;
+    const volSeries = chart.addHistogramSeries({ color: '#8b97ad', priceFormat: { type: 'volume' } });
+    volSeries.setData(r.history.map(b => {
+      const isHigh = b.vol_ma && b.volume > b.vol_ma * 1.5;
+      const isUp = b.close >= b.open;
+      return {
+        time: toTime(b.date),
+        value: b.volume,
+        color: isHigh ? (isUp ? '#22c55e' : '#ef4444') : 'rgba(139,151,173,0.5)',
+      };
+    }));
+
+    // Ligne moyenne mobile du volume
+    if (r.history[0].vol_ma !== null) {
+      const volMa = chart.addLineSeries({ color: '#eab308', lineWidth: 1, lineStyle: 2 });
+      volMa.setData(r.history.filter(b => b.vol_ma !== null).map(b => ({ time: toTime(b.date), value: b.vol_ma })));
+    }
+    chart.timeScale().fitContent();
+  }
+
+  // ==== RSI ====
+  const rsiEl = document.getElementById("chart-rsi");
+  if (rsiEl) {
+    const chart = LightweightCharts.createChart(rsiEl, {
+      ...commonOptions,
+      width: rsiEl.clientWidth,
+      height: rsiEl.clientHeight || 140,
+    });
+    window._chart_rsi = chart;
+    const rsiSeries = chart.addLineSeries({ color: '#a855f7', lineWidth: 2 });
+    rsiSeries.setData(r.history.filter(b => b.rsi !== null).map(b => ({ time: toTime(b.date), value: b.rsi })));
+    // Lignes 30 et 70
+    rsiSeries.createPriceLine({ price: 70, color: '#ef4444', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'Surachat 70' });
+    rsiSeries.createPriceLine({ price: 30, color: '#22c55e', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'Survente 30' });
+    rsiSeries.createPriceLine({ price: 50, color: '#8b97ad', lineWidth: 1, lineStyle: 3 });
+    chart.timeScale().fitContent();
+  }
+
+  // ==== MACD ====
+  const macdEl = document.getElementById("chart-macd");
+  if (macdEl) {
+    const chart = LightweightCharts.createChart(macdEl, {
+      ...commonOptions,
+      width: macdEl.clientWidth,
+      height: macdEl.clientHeight || 140,
+    });
+    window._chart_macd = chart;
+
+    // Histogramme MACD
+    const histSeries = chart.addHistogramSeries({ priceFormat: { type: 'volume', precision: 3 } });
+    histSeries.setData(r.history.filter(b => b.macd_hist !== null).map(b => ({
+      time: toTime(b.date),
+      value: b.macd_hist,
+      color: b.macd_hist >= 0 ? 'rgba(34,197,94,0.6)' : 'rgba(239,68,68,0.6)',
+    })));
+
+    // MACD line
+    const macdSeries = chart.addLineSeries({ color: '#3b82f6', lineWidth: 2 });
+    macdSeries.setData(r.history.filter(b => b.macd !== null).map(b => ({ time: toTime(b.date), value: b.macd })));
+
+    // Signal line
+    const sigSeries = chart.addLineSeries({ color: '#f97316', lineWidth: 1 });
+    sigSeries.setData(r.history.filter(b => b.macd_signal !== null).map(b => ({ time: toTime(b.date), value: b.macd_signal })));
+
+    chart.timeScale().fitContent();
+  }
+
+  // Synchroniser les zooms entre charts
+  syncCharts();
+}
+
+function syncCharts() {
+  const charts = ["main", "volume", "rsi", "macd"]
+    .map(n => window["_chart_" + n])
+    .filter(c => c);
+
+  if (charts.length < 2) return;
+
+  charts.forEach((chart, idx) => {
+    chart.timeScale().subscribeVisibleLogicalRangeChange(range => {
+      if (!range) return;
+      charts.forEach((other, j) => {
+        if (j !== idx) other.timeScale().setVisibleLogicalRange(range);
+      });
+    });
+  });
 }
 
 function renderChart(r) {
-  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
-  const ctx = document.getElementById("chart");
-  if (!ctx || !r.history || r.history.length === 0) return;
-  const candles = r.history.map(b => ({ x: new Date(b.date).valueOf(), o: b.open, h: b.high, l: b.low, c: b.close }));
-  const volumes = r.history.map(b => ({ x: new Date(b.date).valueOf(), y: b.volume }));
-  chartInstance = new Chart(ctx, {
-    data: {
-      datasets: [
-        { type: "candlestick", label: r.ticker, data: candles, yAxisID: "y",
-          color: { up: "#22c55e", down: "#ef4444", unchanged: "#8b97ad" }},
-        { type: "bar", label: "Volume", data: volumes, yAxisID: "y2",
-          backgroundColor: "rgba(139, 151, 173, 0.35)" }
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { mode: "index", intersect: false } },
-      scales: {
-        x: { type: "time", ticks: { color: "#8b97ad", maxRotation: 0, autoSkip: true, maxTicksLimit: 6 }, grid: { color: "#26334a" } },
-        y: { position: "right", ticks: { color: "#8b97ad" }, grid: { color: "#26334a" } },
-        y2: { position: "left", display: false, max: Math.max(...volumes.map(v => v.y)) * 4 }
-      }
-    }
-  });
+  // Conservée pour compat avec watchlist - utilise renderAdvancedChart si possible
+  renderAdvancedChart(r);
 }
 
 // =========================================================================
